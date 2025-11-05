@@ -42,12 +42,11 @@ AI Meal Planner helps users eliminate food waste, save time on meal planning, an
 ### External APIs
 - **AI:** [Google Gemini API](https://ai.google.dev/docs) (`gemini-pro`)
 - **Payments:** [Stripe](https://stripe.com/docs) (Checkout + Webhooks)
-- **Affiliate:** Rohlik.cz via [VIVnetworks](https://www.vivnetworks.cz/)
 - **Nutrition:** [Edamam API](https://developer.edamam.com/) *(optional, later)*
 
 ### Deployment
 - **Hosting:** [Vercel](https://vercel.com/docs)
-- **Domain:** TBD
+- **Domain:** yumlo.app
 - **Monitoring:** Vercel Analytics
 
 ---
@@ -56,7 +55,7 @@ AI Meal Planner helps users eliminate food waste, save time on meal planning, an
 
 ### ✅ Implemented
 - [ ] Email/Password Authentication
-- [ ] 4-Step Onboarding Wizard
+- [ ] Onboarding process
 - [ ] Inventory Management
 - [ ] AI Meal Plan Generation (1-7 days)
 - [ ] Recipe Details with Macronutrients
@@ -90,18 +89,7 @@ AI Meal Planner helps users eliminate food waste, save time on meal planning, an
 
 ### Development
 - **Live Demo:** *(coming soon)*
-- **Staging:** *(coming soon)*
-
----
-
-## 🚀 Quick Start
-
-> **Note:** Setup instructions will be added once development begins.
-
-```bash
-# Coming soon...
-```
-
+  
 ---
 
 ## 📖 Project Structure
