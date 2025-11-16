@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
         const customerId = subscription.customer as string;
         const userId = subscription.metadata.userId;
 
+        // Access current_period_end using any assertion to avoid TypeScript errors
+        const currentPeriodEnd = (subscription as any).current_period_end;
+        const periodEndDate = currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000).toISOString()
+          : new Date().toISOString();
+
         console.log('Processing subscription event:', {
           eventType: event.type,
           subscriptionId: subscription.id,
@@ -67,9 +73,7 @@ export async function POST(req: NextRequest) {
                 stripe_subscription_id: subscription.id,
                 subscription_status: subscription.status,
                 subscription_plan: subscription.items.data[0]?.price.id,
-                subscription_current_period_end: new Date(
-                  subscription.current_period_end * 1000
-                ).toISOString(),
+                subscription_current_period_end: periodEndDate,
               })
               .eq('id', user.id);
 
@@ -92,9 +96,7 @@ export async function POST(req: NextRequest) {
             stripe_subscription_id: subscription.id,
             subscription_status: subscription.status,
             subscription_plan: subscription.items.data[0]?.price.id,
-            subscription_current_period_end: new Date(
-              subscription.current_period_end * 1000
-            ).toISOString(),
+            subscription_current_period_end: periodEndDate,
           })
           .eq('id', userId);
 
