@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createClientFromRequest } from '@/lib/supabase-server';
 
@@ -41,16 +42,22 @@ export async function POST(req: NextRequest) {
       }
     );
 
+    // Access current_period_end using bracket notation to avoid TypeScript errors
+    const currentPeriodEnd = (subscription as any).current_period_end;
+    const cancelAtDate = currentPeriodEnd
+      ? new Date(currentPeriodEnd * 1000)
+      : new Date();
+
     console.log('Subscription cancelled:', {
       subscriptionId: subscription.id,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodEnd: cancelAtDate,
     });
 
     return NextResponse.json({
       success: true,
       message: 'Subscription will be cancelled at the end of the billing period',
-      cancelAt: new Date(subscription.current_period_end * 1000).toISOString(),
+      cancelAt: cancelAtDate.toISOString(),
     });
   } catch (error: any) {
     console.error('Error cancelling subscription:', error);
