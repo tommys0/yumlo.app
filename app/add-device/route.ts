@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set('device_auth', token, {
       path: '/',
       maxAge: 60 * 60 * 24 * 365, // 1 year in seconds
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from 'strict' to allow Stripe redirects
       secure: process.env.NODE_ENV === 'production',
     });
 
