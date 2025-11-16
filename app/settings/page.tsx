@@ -1,0 +1,338 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
+
+interface UserData {
+  email: string;
+  subscription_status?: string;
+  subscription_plan?: string;
+  subscription_current_period_end?: string;
+}
+
+export default function SettingsPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  const checkUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    // Fetch user data from database
+    const { data } = await supabase
+      .from('users')
+      .select('subscription_status, subscription_plan, subscription_current_period_end')
+      .eq('id', user.id)
+      .single();
+
+    setUserData({
+      email: user.email || '',
+      subscription_status: data?.subscription_status,
+      subscription_plan: data?.subscription_plan,
+      subscription_current_period_end: data?.subscription_current_period_end,
+    });
+
+    setLoading(false);
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+
+    if (newPassword !== confirmPassword) {
+      setMessage('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setMessage('Password must be at least 6 characters');
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      setMessage('Error updating password: ' + error.message);
+    } else {
+      setMessage('Password updated successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!confirm('Are you sure you want to cancel your subscription? You will lose access to unlimited generations at the end of your billing period.')) {
+      return;
+    }
+
+    setPortalLoading(true);
+    try {
+      const response = await fetch('/api/stripe/cancel-subscription', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage('Subscription cancelled successfully. You can still use your plan until the end of the billing period.');
+        // Refresh user data
+        await checkUser();
+      } else {
+        setMessage(data.error || 'Failed to cancel subscription');
+      }
+    } catch (error) {
+      setMessage('Error cancelling subscription');
+      console.error(error);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleUpgradePlan = (newPriceId: string, planName: string) => {
+    if (confirm(`Upgrade to ${planName}? You'll be charged a prorated amount for the remainder of this billing period.`)) {
+      // Redirect to pricing page or handle upgrade
+      window.location.href = '/pricing';
+    }
+  };
+
+  const getPlanName = (planId?: string) => {
+    if (!planId) return 'Free';
+    // Check against actual Stripe price IDs
+    if (planId === 'price_1SU4aiQzCEmOXTX6mnfngIiz') {
+      return 'Basic (175 Kč/month)';
+    }
+    if (planId === 'price_1SU4bwQzCEmOXTX6YKLtsHLH') {
+      return 'Ultra (300 Kč/month)';
+    }
+    return 'Free';
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', padding: '40px 20px', background: '#0a0a0a' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '32px' }}>
+          <Link
+            href="/dashboard"
+            style={{
+              color: '#666',
+              textDecoration: 'none',
+              fontSize: '14px',
+              marginBottom: '20px',
+              display: 'inline-block',
+            }}
+          >
+            ← Back to dashboard
+          </Link>
+          <h1 style={{ fontSize: '36px', marginBottom: '8px', color: '#fff' }}>Settings</h1>
+        </div>
+
+        {/* Subscription Section */}
+        <div
+          style={{
+            background: '#111',
+            border: '1px solid #333',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+          }}
+        >
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>Subscription</h2>
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ color: '#888', marginBottom: '8px' }}>Current Plan</p>
+            <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
+              {getPlanName(userData?.subscription_plan)}
+            </p>
+            {userData?.subscription_status && userData.subscription_status !== 'canceled' && (
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+                Status: {userData.subscription_status}
+              </p>
+            )}
+            {userData?.subscription_current_period_end && (
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+                Renews on: {new Date(userData.subscription_current_period_end).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
+              <>
+                {userData.subscription_plan !== 'price_1SU4bwQzCEmOXTX6YKLtsHLH' && (
+                  <Link
+                    href="/pricing"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      background: '#fff',
+                      color: '#000',
+                      textDecoration: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      display: 'inline-block',
+                    }}
+                  >
+                    Upgrade Plan
+                  </Link>
+                )}
+                <button
+                  onClick={handleCancelSubscription}
+                  disabled={portalLoading}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    background: '#dc3545',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: portalLoading ? 'not-allowed' : 'pointer',
+                    opacity: portalLoading ? 0.7 : 1,
+                  }}
+                >
+                  {portalLoading ? 'Canceling...' : 'Cancel Subscription'}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/pricing"
+                style={{
+                  display: 'inline-block',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  background: '#fff',
+                  color: '#000',
+                  textDecoration: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                }}
+              >
+                Upgrade Plan
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Account Section */}
+        <div
+          style={{
+            background: '#111',
+            border: '1px solid #333',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+          }}
+        >
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>Account</h2>
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ color: '#888', marginBottom: '8px' }}>Email</p>
+            <p style={{ fontSize: '16px', color: '#fff' }}>{userData?.email}</p>
+          </div>
+        </div>
+
+        {/* Password Section */}
+        <div
+          style={{
+            background: '#111',
+            border: '1px solid #333',
+            borderRadius: '12px',
+            padding: '24px',
+          }}
+        >
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>Change Password</h2>
+          <form onSubmit={handlePasswordChange}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>
+                New Password
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: '#1a1a1a',
+                  color: '#fff',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                }}
+                required
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: '#1a1a1a',
+                  color: '#fff',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                }}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                background: '#333',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              Update Password
+            </button>
+          </form>
+          {message && (
+            <p
+              style={{
+                marginTop: '16px',
+                color: message.includes('Error') ? '#ff4444' : '#44ff44',
+              }}
+            >
+              {message}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
