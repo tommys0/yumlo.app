@@ -59,6 +59,11 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/pricing?canceled=true`,
+      subscription_data: {
+        metadata: {
+          userId: user.id,
+        },
+      },
       metadata: {
         userId: user.id,
       },
