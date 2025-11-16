@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 
 interface UserData {
   subscription_status?: string;
@@ -21,18 +21,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
       // Fetch user subscription data
       const { data } = await supabase
-        .from('users')
-        .select('subscription_status, subscription_plan, generation_count, generation_limit')
-        .eq('id', user.id)
+        .from("users")
+        .select(
+          "subscription_status, subscription_plan, generation_count, generation_limit",
+        )
+        .eq("id", user.id)
         .single();
 
       setUser(user);
@@ -45,62 +49,92 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/');
+    router.push("/");
   };
 
   const getPlanName = () => {
-    if (!userData?.subscription_status || userData.subscription_status === 'canceled') {
-      return 'Free';
+    if (
+      !userData?.subscription_status ||
+      userData.subscription_status === "canceled"
+    ) {
+      return "Free";
     }
     // Check against actual Stripe price IDs
-    if (userData.subscription_plan === 'price_1SU4aiQzCEmOXTX6mnfngIiz') {
-      return 'Basic';
+    if (userData.subscription_plan === "price_1SU4aiQzCEmOXTX6mnfngIiz") {
+      return "Basic";
     }
-    if (userData.subscription_plan === 'price_1SU4bwQzCEmOXTX6YKLtsHLH') {
-      return 'Ultra';
+    if (userData.subscription_plan === "price_1SU4bwQzCEmOXTX6YKLtsHLH") {
+      return "Ultra";
     }
-    return 'Free';
+    return "Free";
   };
 
   const hasActiveSubscription = () => {
-    return userData?.subscription_status === 'active' || userData?.subscription_status === 'trialing';
+    return (
+      userData?.subscription_status === "active" ||
+      userData?.subscription_status === "trialing"
+    );
   };
 
   const canGenerate = () => {
     if (hasActiveSubscription()) return true;
-    return (userData?.generation_count || 0) < (userData?.generation_limit || 5);
+    return (
+      (userData?.generation_count || 0) < (userData?.generation_limit || 5)
+    );
   };
 
   const generationsRemaining = () => {
-    if (hasActiveSubscription()) return 'Unlimited';
-    const remaining = (userData?.generation_limit || 5) - (userData?.generation_count || 0);
+    if (hasActiveSubscription()) return "Unlimited";
+    const remaining =
+      (userData?.generation_limit || 5) - (userData?.generation_count || 0);
     return Math.max(0, remaining);
   };
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
-        <p style={{ color: '#fff' }}>Loading...</p>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0a0a0a",
+        }}
+      >
+        <p style={{ color: "#fff" }}>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '40px 20px', background: '#0a0a0a' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: "40px 20px",
+        background: "#0a0a0a",
+      }}
+    >
+      <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '36px', color: '#fff' }}>Dashboard</h1>
-          <div style={{ display: 'flex', gap: '12px' }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "40px",
+          }}
+        >
+          <h1 style={{ fontSize: "36px", color: "#fff" }}>Dashboard</h1>
+          <div style={{ display: "flex", gap: "12px" }}>
             <Link
               href="/settings"
               style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                background: '#333',
-                color: '#fff',
-                textDecoration: 'none',
-                borderRadius: '8px',
+                padding: "10px 20px",
+                fontSize: "14px",
+                background: "#333",
+                color: "#fff",
+                textDecoration: "none",
+                borderRadius: "8px",
               }}
             >
               Settings
@@ -108,13 +142,13 @@ export default function DashboardPage() {
             <button
               onClick={handleLogout}
               style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
+                padding: "10px 20px",
+                fontSize: "14px",
+                backgroundColor: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
               }}
             >
               Logout
@@ -125,56 +159,61 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div
           style={{
-            background: '#111',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '24px',
+            background: "#111",
+            border: "1px solid #333",
+            borderRadius: "12px",
+            padding: "24px",
+            marginBottom: "24px",
           }}
         >
-          <h2 style={{ fontSize: '24px', marginBottom: '8px', color: '#fff' }}>
+          <h2 style={{ fontSize: "24px", marginBottom: "8px", color: "#fff" }}>
             Welcome back, {user?.email}!
           </h2>
-          <p style={{ color: '#888' }}>
-            Current Plan: <span style={{ color: '#fff', fontWeight: 'bold' }}>{getPlanName()}</span>
+          <p style={{ color: "#888" }}>
+            Current Plan:{" "}
+            <span style={{ color: "#fff", fontWeight: "bold" }}>
+              {getPlanName()}
+            </span>
           </p>
         </div>
 
         {/* Stats Grid */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '20px',
-            marginBottom: '24px',
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: "20px",
+            marginBottom: "24px",
           }}
         >
           {/* Generations Remaining */}
           <div
             style={{
-              background: '#111',
-              border: '1px solid #333',
-              borderRadius: '12px',
-              padding: '24px',
+              background: "#111",
+              border: "1px solid #333",
+              borderRadius: "12px",
+              padding: "24px",
             }}
           >
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '8px' }}>Generations Remaining</p>
-            <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff' }}>
+            <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
+              Generations Remaining
+            </p>
+            <p style={{ fontSize: "32px", fontWeight: "bold", color: "#fff" }}>
               {generationsRemaining()}
             </p>
             {!hasActiveSubscription() && generationsRemaining() === 0 && (
               <Link
                 href="/pricing"
                 style={{
-                  display: 'inline-block',
-                  marginTop: '12px',
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  background: '#fff',
-                  color: '#000',
-                  textDecoration: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
+                  display: "inline-block",
+                  marginTop: "12px",
+                  padding: "8px 16px",
+                  fontSize: "12px",
+                  background: "#fff",
+                  color: "#000",
+                  textDecoration: "none",
+                  borderRadius: "6px",
+                  fontWeight: "bold",
                 }}
               >
                 Upgrade Now
@@ -185,34 +224,36 @@ export default function DashboardPage() {
           {/* Subscription Status */}
           <div
             style={{
-              background: '#111',
-              border: '1px solid #333',
-              borderRadius: '12px',
-              padding: '24px',
+              background: "#111",
+              border: "1px solid #333",
+              borderRadius: "12px",
+              padding: "24px",
             }}
           >
-            <p style={{ color: '#888', fontSize: '14px', marginBottom: '8px' }}>Subscription Status</p>
+            <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
+              Subscription Status
+            </p>
             <p
               style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: hasActiveSubscription() ? '#44ff44' : '#888',
+                fontSize: "18px",
+                fontWeight: "bold",
+                color: hasActiveSubscription() ? "#44ff44" : "#888",
               }}
             >
-              {hasActiveSubscription() ? 'Active' : 'Free Tier'}
+              {hasActiveSubscription() ? "Active" : "Free Tier"}
             </p>
             {!hasActiveSubscription() && (
               <Link
                 href="/pricing"
                 style={{
-                  display: 'inline-block',
-                  marginTop: '12px',
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  background: '#333',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  borderRadius: '6px',
+                  display: "inline-block",
+                  marginTop: "12px",
+                  padding: "8px 16px",
+                  fontSize: "12px",
+                  background: "#333",
+                  color: "#fff",
+                  textDecoration: "none",
+                  borderRadius: "6px",
                 }}
               >
                 View Plans
@@ -224,39 +265,45 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div
           style={{
-            background: '#111',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '32px',
-            textAlign: 'center',
+            background: "#111",
+            border: "1px solid #333",
+            borderRadius: "12px",
+            padding: "32px",
+            textAlign: "center",
           }}
         >
-          <h3 style={{ fontSize: '20px', marginBottom: '16px', color: '#fff' }}>
+          <h3 style={{ fontSize: "20px", marginBottom: "16px", color: "#fff" }}>
             AI Meal Generation
           </h3>
-          <p style={{ color: '#888', marginBottom: '24px' }}>
-            Generate personalized meal plans based on your preferences and dietary needs
+          <p style={{ color: "#888", marginBottom: "24px" }}>
+            Generate personalized meal plans based on your preferences and
+            dietary needs
           </p>
           <button
             disabled={!canGenerate()}
             style={{
-              padding: '12px 32px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              background: canGenerate() ? '#fff' : '#333',
-              color: canGenerate() ? '#000' : '#666',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: canGenerate() ? 'pointer' : 'not-allowed',
+              padding: "12px 32px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              background: canGenerate() ? "#fff" : "#333",
+              color: canGenerate() ? "#000" : "#666",
+              border: "none",
+              borderRadius: "8px",
+              cursor: canGenerate() ? "pointer" : "not-allowed",
               opacity: canGenerate() ? 1 : 0.5,
             }}
           >
-            {canGenerate() ? 'Generate Meal Plan' : 'No Generations Remaining'}
+            {canGenerate() ? "Generate Meal Plan" : "No Generations Remaining"}
           </button>
           {!canGenerate() && (
-            <p style={{ marginTop: '16px', color: '#ff4444', fontSize: '14px' }}>
-              You've used all your free generations.{' '}
-              <Link href="/pricing" style={{ color: '#fff', textDecoration: 'underline' }}>
+            <p
+              style={{ marginTop: "16px", color: "#ff4444", fontSize: "14px" }}
+            >
+              You&apos;ve used all your free generations.{" "}
+              <Link
+                href="/pricing"
+                style={{ color: "#fff", textDecoration: "underline" }}
+              >
                 Upgrade to continue
               </Link>
             </p>
