@@ -75,7 +75,7 @@ export default function PricingPage() {
     fetchUserPlan();
   }, []);
 
-  const handleSubscribe = async (priceId: string | null, planName: string) => {
+  const handleSubscribe = async (priceId: string | null | undefined, planName: string) => {
     if (!priceId) {
       // Free tier - redirect to register
       router.push('/register');
