@@ -1,10 +1,45 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createServerClient } from '@supabase/ssr';
 
-export function middleware(request: NextRequest) {
-  // Allow access to /add-device route
-  if (request.nextUrl.pathname.startsWith("/add-device")) {
-    return NextResponse.next();
+export async function proxy(request: NextRequest) {
+  // Create Supabase client and refresh session
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session
+  await supabase.auth.getUser();
+
+  // Allow access to /add-device and webhook routes
+  if (
+    request.nextUrl.pathname.startsWith("/add-device") ||
+    request.nextUrl.pathname.startsWith("/api/stripe/webhook")
+  ) {
+    return supabaseResponse;
   }
 
   // Read ALLOWED_DEVICES from environment variable
@@ -19,7 +54,7 @@ export function middleware(request: NextRequest) {
 
   // Check if device is authorized
   if (deviceAuth && allowedDevices.includes(deviceAuth)) {
-    return NextResponse.next();
+    return supabaseResponse;
   }
 
   // ✨ Custom unauthorized page
@@ -54,11 +89,11 @@ export function middleware(request: NextRequest) {
       </head>
       <body>
         <div>
-          <h1>🚧 Yumlo is currently in development</h1>
+          <h1>Yumlo is currently in development</h1>
           <p>
             This version of the site is private and limited to authorized devices only.<br><br>
             Once we launch the public release, this page will be available for everyone.<br><br>
-            Thanks for your patience ❤️
+            Thanks for your patience!
           </p>
         </div>
       </body>
