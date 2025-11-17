@@ -1,8 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Quick auth check in background (non-blocking)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', padding: '40px 20px' }}>
@@ -20,17 +30,34 @@ export default function Home() {
           >
             Pricing
           </Link>
-          <Link
-            href="/login"
-            style={{
-              padding: '8px 16px',
-              color: '#fff',
-              textDecoration: 'none',
-              fontSize: '14px',
-            }}
-          >
-            Login
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/dashboard"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#fff',
+                color: '#000',
+                textDecoration: 'none',
+                fontSize: '14px',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+              }}
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              style={{
+                padding: '8px 16px',
+                color: '#fff',
+                textDecoration: 'none',
+                fontSize: '14px',
+              }}
+            >
+              Login
+            </Link>
+          )}
         </div>
 
         {/* Hero Section */}
