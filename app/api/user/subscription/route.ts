@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ subscription_plan: null });
+      const response = NextResponse.json({ subscription_plan: null });
+      // Cache for 5 minutes for unauthenticated users
+      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      return response;
     }
 
     // Fetch user subscription data
@@ -21,10 +24,15 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       subscription_plan: data?.subscription_plan || null,
       subscription_status: data?.subscription_status || null,
     });
+
+    // Cache for 30 seconds for authenticated users (fresher data for active users)
+    response.headers.set('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60');
+
+    return response;
   } catch (error) {
     console.error('Error fetching subscription:', error);
     return NextResponse.json({ subscription_plan: null });

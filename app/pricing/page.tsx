@@ -58,18 +58,24 @@ export default function PricingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch user's current subscription
+    // Fetch user's current subscription in background (non-blocking)
     const fetchUserPlan = async () => {
       try {
-        const response = await fetch('/api/user/subscription');
+        const response = await fetch('/api/user/subscription', {
+          // Add cache headers for faster subsequent loads
+          next: { revalidate: 60 }, // Cache for 60 seconds
+        } as any);
         const data = await response.json();
         if (data.subscription_plan) {
           setCurrentPlan(data.subscription_plan);
         }
       } catch (error) {
         console.error('Error fetching user plan:', error);
+      } finally {
+        setPlanLoading(false);
       }
     };
     fetchUserPlan();
@@ -216,21 +222,21 @@ export default function PricingPage() {
 
               <button
                 onClick={() => handleSubscribe(plan.priceId, plan.name)}
-                disabled={loading === plan.name || currentPlan === plan.priceId}
+                disabled={loading === plan.name || (!planLoading && currentPlan === plan.priceId)}
                 style={{
                   width: '100%',
                   padding: '12px',
                   fontSize: '16px',
                   fontWeight: 'bold',
-                  background: currentPlan === plan.priceId ? '#555' : (plan.popular ? '#fff' : '#333'),
-                  color: currentPlan === plan.priceId ? '#aaa' : (plan.popular ? '#000' : '#fff'),
+                  background: (!planLoading && currentPlan === plan.priceId) ? '#555' : (plan.popular ? '#fff' : '#333'),
+                  color: (!planLoading && currentPlan === plan.priceId) ? '#aaa' : (plan.popular ? '#000' : '#fff'),
                   border: 'none',
                   borderRadius: '8px',
-                  cursor: (loading === plan.name || currentPlan === plan.priceId) ? 'not-allowed' : 'pointer',
-                  opacity: (loading === plan.name || currentPlan === plan.priceId) ? 0.7 : 1,
+                  cursor: (loading === plan.name || (!planLoading && currentPlan === plan.priceId)) ? 'not-allowed' : 'pointer',
+                  opacity: (loading === plan.name || (!planLoading && currentPlan === plan.priceId)) ? 0.7 : 1,
                 }}
               >
-                {loading === plan.name ? 'Loading...' : currentPlan === plan.priceId ? 'Current Plan' : plan.buttonText}
+                {loading === plan.name ? 'Loading...' : (!planLoading && currentPlan === plan.priceId) ? 'Current Plan' : plan.buttonText}
               </button>
             </div>
           ))}
