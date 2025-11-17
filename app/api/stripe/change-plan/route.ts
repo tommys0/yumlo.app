@@ -48,19 +48,47 @@ export async function POST(req: NextRequest) {
       userData.stripe_subscription_id
     );
 
-    // Update the subscription with the new price
-    const updatedSubscription = await stripe.subscriptions.update(
-      userData.stripe_subscription_id,
-      {
-        items: [
-          {
-            id: subscription.items.data[0].id,
-            price: newPriceId,
-          },
-        ],
-        proration_behavior: 'always_invoice', // Pro-rate the change
-      }
-    ) as Stripe.Subscription;
+    // Determine if this is an upgrade or downgrade based on price
+    const currentPrice = subscription.items.data[0].price.id;
+    const priceMap: { [key: string]: number } = {
+      'price_1SU4aiQzCEmOXTX6mnfngIiz': 7, // Basic
+      'price_1SU4bwQzCEmOXTX6YKLtsHLH': 12, // Ultra
+    };
+    const isUpgrade = (priceMap[newPriceId] || 0) > (priceMap[currentPrice] || 0);
+
+    let updatedSubscription;
+
+    if (isUpgrade) {
+      // UPGRADE: Charge full price immediately, reset billing cycle
+      updatedSubscription = await stripe.subscriptions.update(
+        userData.stripe_subscription_id,
+        {
+          items: [
+            {
+              id: subscription.items.data[0].id,
+              price: newPriceId,
+            },
+          ],
+          proration_behavior: 'none', // No proration - charge full price
+          billing_cycle_anchor: 'now', // Reset billing cycle to today
+        }
+      ) as Stripe.Subscription;
+    } else {
+      // DOWNGRADE: Finish current period, then switch at next billing
+      updatedSubscription = await stripe.subscriptions.update(
+        userData.stripe_subscription_id,
+        {
+          items: [
+            {
+              id: subscription.items.data[0].id,
+              price: newPriceId,
+            },
+          ],
+          proration_behavior: 'none', // No proration - no refund
+          billing_cycle_anchor: 'unchanged', // Keep same billing date
+        }
+      ) as Stripe.Subscription;
+    }
 
     console.log('Plan changed:', {
       subscriptionId: updatedSubscription.id,

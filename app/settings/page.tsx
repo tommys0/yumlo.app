@@ -110,8 +110,8 @@ export default function SettingsPage() {
   const handleChangePlan = async (newPriceId: string, planName: string, isDowngrade: boolean) => {
     const action = isDowngrade ? 'downgrade' : 'upgrade';
     const message = isDowngrade
-      ? `Downgrade to ${planName}? You'll receive a prorated credit for the remainder of this billing period.`
-      : `Upgrade to ${planName}? You'll be charged a prorated amount for the remainder of this billing period.`;
+      ? `Downgrade to ${planName}? You'll keep your current plan until the end of this billing period, then automatically switch to ${planName}.`
+      : `Upgrade to ${planName}? You'll be charged the full price immediately and your billing cycle will reset to today.`;
 
     if (!confirm(message)) {
       return;
@@ -130,7 +130,10 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage(`Plan ${action}d successfully! Your new plan will take effect immediately.`);
+        const successMessage = isDowngrade
+          ? `Plan scheduled! You'll keep your current plan until the end of this billing period, then switch to ${planName}.`
+          : `Plan upgraded! You now have access to ${planName} features. Your billing cycle has been reset.`;
+        setMessage(successMessage);
         // Refresh user data
         await checkUser();
       } else {
