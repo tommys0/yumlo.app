@@ -107,10 +107,40 @@ export default function SettingsPage() {
     }
   };
 
-  const handleUpgradePlan = (newPriceId: string, planName: string) => {
-    if (confirm(`Upgrade to ${planName}? You'll be charged a prorated amount for the remainder of this billing period.`)) {
-      // Redirect to pricing page or handle upgrade
-      window.location.href = '/pricing';
+  const handleChangePlan = async (newPriceId: string, planName: string, isDowngrade: boolean) => {
+    const action = isDowngrade ? 'downgrade' : 'upgrade';
+    const message = isDowngrade
+      ? `Downgrade to ${planName}? You'll receive a prorated credit for the remainder of this billing period.`
+      : `Upgrade to ${planName}? You'll be charged a prorated amount for the remainder of this billing period.`;
+
+    if (!confirm(message)) {
+      return;
+    }
+
+    setPortalLoading(true);
+    try {
+      const response = await fetch('/api/stripe/change-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newPriceId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`Plan ${action}d successfully! Your new plan will take effect immediately.`);
+        // Refresh user data
+        await checkUser();
+      } else {
+        setMessage(data.error || `Failed to ${action} plan`);
+      }
+    } catch (error) {
+      setMessage(`Error ${action}ing plan`);
+      console.error(error);
+    } finally {
+      setPortalLoading(false);
     }
   };
 
@@ -184,6 +214,7 @@ export default function SettingsPage() {
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
               <>
+                {/* Upgrade button - show if not on Ultra */}
                 {userData.subscription_plan !== 'price_1SU4bwQzCEmOXTX6YKLtsHLH' && (
                   <Link
                     href="/pricing"
@@ -200,6 +231,26 @@ export default function SettingsPage() {
                   >
                     Upgrade Plan
                   </Link>
+                )}
+                {/* Downgrade button - show if on Ultra */}
+                {userData.subscription_plan === 'price_1SU4bwQzCEmOXTX6YKLtsHLH' && (
+                  <button
+                    onClick={() => handleChangePlan('price_1SU4aiQzCEmOXTX6mnfngIiz', 'Basic', true)}
+                    disabled={portalLoading}
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      background: '#ffa500',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: portalLoading ? 'not-allowed' : 'pointer',
+                      opacity: portalLoading ? 0.7 : 1,
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {portalLoading ? 'Processing...' : 'Downgrade to Basic'}
+                  </button>
                 )}
                 <button
                   onClick={handleCancelSubscription}
