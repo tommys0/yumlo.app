@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientFromRequest } from '@/lib/supabase-server';
 
+// Enable edge runtime for faster response
+export const runtime = 'edge';
+
 export async function GET(req: NextRequest) {
   try {
     const supabase = createClientFromRequest(req);
 
+    // Get user - this is cached by Supabase
     const {
       data: { user },
       error: authError,
@@ -12,29 +16,34 @@ export async function GET(req: NextRequest) {
 
     if (authError || !user) {
       const response = NextResponse.json({ subscription_plan: null });
-      // Cache for 5 minutes for unauthenticated users
-      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
       return response;
     }
 
-    // Fetch user subscription data
-    const { data } = await supabase
+    // Optimized query - only essential fields
+    const { data, error: dbError } = await supabase
       .from('users')
       .select('subscription_plan, subscription_status')
       .eq('id', user.id)
-      .single();
+      .maybeSingle(); // Faster than .single() - doesn't throw on no results
+
+    if (dbError) {
+      console.error('DB error fetching subscription:', dbError);
+    }
 
     const response = NextResponse.json({
       subscription_plan: data?.subscription_plan || null,
       subscription_status: data?.subscription_status || null,
     });
 
-    // Cache for 30 seconds for authenticated users (fresher data for active users)
-    response.headers.set('Cache-Control', 'private, s-maxage=30, stale-while-revalidate=60');
+    // Aggressive caching for better performance
+    response.headers.set('Cache-Control', 'private, max-age=15, stale-while-revalidate=30');
 
     return response;
   } catch (error) {
     console.error('Error fetching subscription:', error);
-    return NextResponse.json({ subscription_plan: null });
+    const response = NextResponse.json({ subscription_plan: null });
+    response.headers.set('Cache-Control', 'private, max-age=5');
+    return response;
   }
 }
