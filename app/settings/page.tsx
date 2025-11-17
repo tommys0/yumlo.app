@@ -239,14 +239,13 @@ export default function SettingsPage() {
                     disabled={portalLoading}
                     style={{
                       padding: '10px 20px',
-                      fontSize: '14px',
-                      background: '#ffa500',
-                      color: '#fff',
-                      border: 'none',
+                      fontSize: '13px',
+                      background: 'transparent',
+                      color: '#666',
+                      border: '1px solid #444',
                       borderRadius: '8px',
                       cursor: portalLoading ? 'not-allowed' : 'pointer',
                       opacity: portalLoading ? 0.7 : 1,
-                      fontWeight: 'bold',
                     }}
                   >
                     {portalLoading ? 'Processing...' : 'Downgrade to Basic'}
