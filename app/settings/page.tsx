@@ -52,23 +52,7 @@ export default function SettingsPage() {
   useEffect(() => {
     checkUser();
     fetchPrices();
-
-    // Auto-sync subscription in background to keep data fresh
-    syncInBackground();
   }, []);
-
-  const syncInBackground = async () => {
-    try {
-      await fetch('/api/stripe/sync-subscription', {
-        method: 'POST',
-      });
-      // Silently refresh data after sync
-      setTimeout(() => checkUser(), 500);
-    } catch (error) {
-      // Fail silently - this is just a background sync
-      console.log('Background sync failed:', error);
-    }
-  };
 
   const fetchPrices = async () => {
     try {
