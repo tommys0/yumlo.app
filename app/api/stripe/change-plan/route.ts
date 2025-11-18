@@ -48,6 +48,16 @@ export async function POST(req: NextRequest) {
       userData.stripe_subscription_id
     );
 
+    // Type assertion to access current_period_end
+    const subscriptionData = subscription as any;
+
+    console.log('Retrieved subscription:', {
+      id: subscription.id,
+      status: subscription.status,
+      current_period_end: subscriptionData.current_period_end,
+      items: subscription.items.data.map(item => item.price.id),
+    });
+
     // Determine if this is an upgrade or downgrade based on price
     const currentPrice = subscription.items.data[0].price.id;
     const priceMap: { [key: string]: number } = {
@@ -76,6 +86,16 @@ export async function POST(req: NextRequest) {
     } else {
       // DOWNGRADE: Change takes effect at end of billing period
       // Stripe updates the subscription immediately but user keeps current access until period ends
+      const periodEnd = subscriptionData.current_period_end;
+      const effectiveDate = periodEnd
+        ? new Date(periodEnd * 1000).toISOString()
+        : new Date().toISOString();
+
+      console.log('Downgrade metadata:', {
+        current_period_end: periodEnd,
+        effective_date: effectiveDate,
+      });
+
       updatedSubscription = await stripe.subscriptions.update(
         userData.stripe_subscription_id,
         {
@@ -90,7 +110,7 @@ export async function POST(req: NextRequest) {
           metadata: {
             ...subscription.metadata,
             downgrade_from: currentPrice, // Track what they're downgrading from
-            downgrade_effective_date: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            downgrade_effective_date: effectiveDate,
           },
         }
       ) as Stripe.Subscription;
