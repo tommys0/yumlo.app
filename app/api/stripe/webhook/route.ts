@@ -34,76 +34,84 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log('=== WEBHOOK EVENT RECEIVED ===');
+    console.log('Event type:', event.type);
+    console.log('Event ID:', event.id);
+
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
-        const userId = subscription.metadata.userId;
+        let userId = subscription.metadata?.userId;
 
         // Access current_period_end using any assertion to avoid TypeScript errors
         const currentPeriodEnd = (subscription as any).current_period_end;
         const periodEndDate = currentPeriodEnd
           ? new Date(currentPeriodEnd * 1000).toISOString()
-          : new Date().toISOString();
+          : null;
 
-        console.log('Processing subscription event:', {
+        const priceId = subscription.items.data[0]?.price.id;
+
+        console.log('📦 Subscription Event Details:', {
           eventType: event.type,
           subscriptionId: subscription.id,
           customerId,
-          userId,
+          userId: userId || 'MISSING',
           status: subscription.status,
-          priceId: subscription.items.data[0]?.price.id,
+          priceId,
+          periodEnd: periodEndDate,
         });
 
+        // CRITICAL: Metadata fallback - find user by customer ID if userId is missing
         if (!userId) {
-          console.error('No userId in subscription metadata, trying to find by customer ID');
-          // Try to find user by customer ID
-          const { data: user } = await supabaseAdmin
+          console.warn('⚠️ No userId in metadata, attempting fallback lookup by customer ID');
+          const { data: user, error: lookupError } = await supabaseAdmin
             .from('users')
             .select('id')
             .eq('stripe_customer_id', customerId)
             .single();
 
-          if (user) {
-            console.log('Found user by customer ID:', user.id);
-            const { error } = await supabaseAdmin
-              .from('users')
-              .update({
-                stripe_subscription_id: subscription.id,
-                subscription_status: subscription.status,
-                subscription_plan: subscription.items.data[0]?.price.id,
-                subscription_current_period_end: periodEndDate,
-              })
-              .eq('id', user.id);
-
-            if (error) {
-              console.error('Error updating user subscription:', error);
-            } else {
-              console.log('Successfully updated subscription for user:', user.id);
-            }
-          } else {
-            console.error('Could not find user with customer ID:', customerId);
+          if (lookupError) {
+            console.error('❌ Customer ID lookup error:', lookupError);
           }
-          break;
+
+          if (user) {
+            userId = user.id;
+            console.log('✅ Found user by customer ID:', userId);
+          } else {
+            console.error('❌ Could not find user with customer ID:', customerId);
+            console.error('   This subscription cannot be linked to a user!');
+            // Still try to continue in case we can link it later
+          }
         }
 
-        // Update user subscription status
-        const { error } = await supabaseAdmin
+        // If we still don't have a userId, we cannot proceed
+        if (!userId) {
+          console.error('❌ CRITICAL: No userId available, cannot update database');
+          return NextResponse.json({ received: true, warning: 'No userId' });
+        }
+
+        // Update user subscription status in database
+        console.log('💾 Updating database for user:', userId);
+        const { error, data: updateResult } = await supabaseAdmin
           .from('users')
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscription.id,
             subscription_status: subscription.status,
-            subscription_plan: subscription.items.data[0]?.price.id,
+            subscription_plan: priceId,
             subscription_current_period_end: periodEndDate,
           })
-          .eq('id', userId);
+          .eq('id', userId)
+          .select();
 
         if (error) {
-          console.error('Error updating user subscription:', error);
+          console.error('❌ Database update error:', error);
+          console.error('   Error details:', JSON.stringify(error, null, 2));
         } else {
-          console.log('Successfully updated subscription for user:', userId);
+          console.log('✅ Successfully updated subscription in database');
+          console.log('   Updated data:', updateResult);
         }
 
         break;
@@ -111,16 +119,50 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata.userId;
+        const customerId = subscription.customer as string;
+        let userId = subscription.metadata?.userId;
 
-        // Update user to free tier
-        await supabaseAdmin
+        console.log('🗑️ Subscription Deletion Event:', {
+          subscriptionId: subscription.id,
+          customerId,
+          userId: userId || 'MISSING',
+        });
+
+        // CRITICAL: Metadata fallback for deletion events too
+        if (!userId) {
+          console.warn('⚠️ No userId in deletion metadata, attempting fallback');
+          const { data: user } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .single();
+
+          if (user) {
+            userId = user.id;
+            console.log('✅ Found user by customer ID:', userId);
+          } else {
+            console.error('❌ Could not find user for deletion event');
+            return NextResponse.json({ received: true, warning: 'No userId for deletion' });
+          }
+        }
+
+        // CRITICAL: Reset ALL subscription fields, not just status and plan
+        console.log('💾 Resetting subscription to free tier for user:', userId);
+        const { error } = await supabaseAdmin
           .from('users')
           .update({
+            stripe_subscription_id: null,
             subscription_status: 'canceled',
             subscription_plan: null,
+            subscription_current_period_end: null,
           })
           .eq('id', userId);
+
+        if (error) {
+          console.error('❌ Error resetting subscription:', error);
+        } else {
+          console.log('✅ Successfully reset subscription to free tier');
+        }
 
         break;
       }
@@ -128,15 +170,31 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
+        const customerId = session.customer as string;
 
-        if (userId && session.customer) {
-          // Store customer ID
-          await supabaseAdmin
+        console.log('🛒 Checkout Session Completed:', {
+          sessionId: session.id,
+          userId: userId || 'MISSING',
+          customerId,
+          mode: session.mode,
+        });
+
+        if (userId && customerId) {
+          console.log('💾 Saving customer ID to database');
+          const { error } = await supabaseAdmin
             .from('users')
             .update({
-              stripe_customer_id: session.customer as string,
+              stripe_customer_id: customerId,
             })
             .eq('id', userId);
+
+          if (error) {
+            console.error('❌ Error saving customer ID:', error);
+          } else {
+            console.log('✅ Customer ID saved successfully');
+          }
+        } else {
+          console.warn('⚠️ Missing userId or customerId in checkout.session.completed');
         }
 
         break;

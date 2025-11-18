@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
+import { isSubscribed } from "@/lib/subscription";
 
 interface UserData {
   subscription_status?: string;
@@ -83,22 +84,15 @@ export default function DashboardPage() {
     return "Free";
   };
 
-  const hasActiveSubscription = () => {
-    return (
-      userData?.subscription_status === "active" ||
-      userData?.subscription_status === "trialing"
-    );
-  };
-
   const canGenerate = () => {
-    if (hasActiveSubscription()) return true;
+    if (isSubscribed(userData)) return true;
     return (
       (userData?.generation_count || 0) < (userData?.generation_limit || 5)
     );
   };
 
   const generationsRemaining = () => {
-    if (hasActiveSubscription()) return "Unlimited";
+    if (isSubscribed(userData)) return "Unlimited";
     const remaining =
       (userData?.generation_limit || 5) - (userData?.generation_count || 0);
     return Math.max(0, remaining);
@@ -215,7 +209,7 @@ export default function DashboardPage() {
             <p style={{ fontSize: "32px", fontWeight: "bold", color: "#fff" }}>
               {generationsRemaining()}
             </p>
-            {!hasActiveSubscription() && generationsRemaining() === 0 && (
+            {!isSubscribed(userData) && generationsRemaining() === 0 && (
               <Link
                 href="/pricing"
                 style={{
@@ -251,12 +245,12 @@ export default function DashboardPage() {
               style={{
                 fontSize: "18px",
                 fontWeight: "bold",
-                color: hasActiveSubscription() ? "#44ff44" : "#888",
+                color: isSubscribed(userData) ? "#44ff44" : "#888",
               }}
             >
-              {hasActiveSubscription() ? "Active" : "Free Tier"}
+              {isSubscribed(userData) ? "Active" : "Free Tier"}
             </p>
-            {!hasActiveSubscription() && (
+            {!isSubscribed(userData) && (
               <Link
                 href="/pricing"
                 style={{

@@ -46,16 +46,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user already has an active subscription
+    // Check if user already has an active subscription (DB check + Stripe check)
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('subscription_status, subscription_plan')
+      .select('subscription_status, subscription_plan, stripe_customer_id')
       .eq('id', user.id)
       .single();
 
-    console.log('User subscription status:', {
+    console.log('User data from DB:', {
       status: userData?.subscription_status,
-      plan: userData?.subscription_plan
+      plan: userData?.subscription_plan,
+      customerId: userData?.stripe_customer_id
     });
 
     if (userError) {
@@ -66,9 +67,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prevent multiple active subscriptions
+    // DB-level check for active subscription
     if (userData?.subscription_status === 'active' || userData?.subscription_status === 'trialing') {
-      console.log('User already has active subscription, rejecting new checkout');
+      console.log('DB shows active subscription, rejecting new checkout');
       return NextResponse.json(
         {
           error: 'You already have an active subscription. Please use the settings page to change your plan.',
@@ -78,10 +79,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create checkout session
-    console.log('Creating Stripe checkout session...');
+    // CRITICAL: Stripe-level check to prevent duplicate subscriptions even if DB is stale
+    if (userData?.stripe_customer_id) {
+      console.log('Checking Stripe for existing subscriptions...');
+      const subscriptions = await stripe.subscriptions.list({
+        customer: userData.stripe_customer_id,
+        limit: 10,
+      });
+
+      const activeSubscription = subscriptions.data.find(
+        sub => sub.status === 'active' || sub.status === 'trialing'
+      );
+
+      if (activeSubscription) {
+        console.log('Found active subscription in Stripe, blocking checkout:', {
+          subscriptionId: activeSubscription.id,
+          status: activeSubscription.status,
+          priceId: activeSubscription.items.data[0]?.price.id,
+        });
+        return NextResponse.json(
+          {
+            error: 'You already have an active subscription in Stripe. Please contact support if you believe this is an error.',
+            hasActiveSubscription: true
+          },
+          { status: 400 }
+        );
+      }
+      console.log('No active subscriptions found in Stripe, proceeding with checkout');
+    }
+
+    // Create checkout session - REUSE existing customer or let Stripe create one
+    console.log('Creating Stripe checkout session...', {
+      reusingCustomer: !!userData?.stripe_customer_id,
+      customerId: userData?.stripe_customer_id,
+    });
+
     const session = await stripe.checkout.sessions.create({
-      customer_email: user.email,
+      // CRITICAL: Reuse existing customer to prevent duplicates
+      customer: userData?.stripe_customer_id || undefined,
+      customer_email: user.email, // Fallback for new customers
       line_items: [
         {
           price: priceId,
