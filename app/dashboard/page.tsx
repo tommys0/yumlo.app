@@ -44,7 +44,21 @@ export default function DashboardPage() {
       setLoading(false);
     };
 
+    const syncInBackground = async () => {
+      try {
+        await fetch('/api/stripe/sync-subscription', {
+          method: 'POST',
+        });
+        // Silently refresh data after sync
+        setTimeout(() => getUser(), 500);
+      } catch (error) {
+        // Fail silently - this is just a background sync
+        console.log('Background sync failed:', error);
+      }
+    };
+
     getUser();
+    syncInBackground();
   }, [router]);
 
   const handleLogout = async () => {

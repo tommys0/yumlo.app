@@ -26,17 +26,44 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (userError || !userData?.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'No Stripe customer found' },
-        { status: 404 }
-      );
+    console.log('User data from DB:', { userId: user.id, email: user.email, customerId: userData?.stripe_customer_id });
+
+    let customerId = userData?.stripe_customer_id;
+
+    // If no customer ID in database, try to find by email in Stripe
+    if (!customerId) {
+      console.log('No customer ID in DB, searching Stripe by email:', user.email);
+      const customers = await stripe.customers.list({
+        email: user.email,
+        limit: 1,
+      });
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        console.log('Found customer in Stripe:', customerId);
+      } else {
+        console.log('No customer found in Stripe for email:', user.email);
+        return NextResponse.json(
+          { error: 'No Stripe customer found for your account' },
+          { status: 404 }
+        );
+      }
     }
 
     // Fetch all subscriptions from Stripe for this customer
+    console.log('Fetching subscriptions for customer:', customerId);
     const subscriptions = await stripe.subscriptions.list({
-      customer: userData.stripe_customer_id,
+      customer: customerId,
       limit: 10,
+    });
+
+    console.log('Found subscriptions:', {
+      count: subscriptions.data.length,
+      subscriptions: subscriptions.data.map(s => ({
+        id: s.id,
+        status: s.status,
+        priceId: s.items.data[0]?.price.id,
+      })),
     });
 
     // Find the active subscription (if any)
@@ -55,9 +82,16 @@ export async function POST(req: NextRequest) {
       const priceId = activeSubscription.items.data[0]?.price.id;
       const currentPeriodEnd = (activeSubscription as any).current_period_end;
 
+      console.log('Updating DB with active subscription:', {
+        subscriptionId: activeSubscription.id,
+        status: activeSubscription.status,
+        priceId,
+      });
+
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({
+          stripe_customer_id: customerId, // Save customer ID if it was missing
           stripe_subscription_id: activeSubscription.id,
           subscription_status: activeSubscription.status,
           subscription_plan: priceId,

@@ -46,7 +46,23 @@ export default function SettingsPage() {
   useEffect(() => {
     checkUser();
     fetchPrices();
+
+    // Auto-sync subscription in background to keep data fresh
+    syncInBackground();
   }, []);
+
+  const syncInBackground = async () => {
+    try {
+      await fetch('/api/stripe/sync-subscription', {
+        method: 'POST',
+      });
+      // Silently refresh data after sync
+      setTimeout(() => checkUser(), 500);
+    } catch (error) {
+      // Fail silently - this is just a background sync
+      console.log('Background sync failed:', error);
+    }
+  };
 
   const fetchPrices = async () => {
     try {
@@ -182,31 +198,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSyncSubscription = async () => {
-    setPortalLoading(true);
-    setMessage('');
-    try {
-      const response = await fetch('/api/stripe/sync-subscription', {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage('Subscription synced successfully!');
-        // Refresh user data
-        await checkUser();
-      } else {
-        setMessage(data.error || 'Failed to sync subscription');
-      }
-    } catch (error) {
-      setMessage('Error syncing subscription');
-      console.error(error);
-    } finally {
-      setPortalLoading(false);
-    }
-  };
-
   const getPlanName = (planId?: string) => {
     if (!planId) return 'Free';
 
@@ -278,29 +269,7 @@ export default function SettingsPage() {
             )}
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <button
-              onClick={handleSyncSubscription}
-              disabled={portalLoading}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                background: 'transparent',
-                color: '#888',
-                border: '1px solid #444',
-                borderRadius: '6px',
-                cursor: portalLoading ? 'not-allowed' : 'pointer',
-                opacity: portalLoading ? 0.7 : 1,
-              }}
-            >
-              {portalLoading ? 'Syncing...' : 'Sync with Stripe'}
-            </button>
-            <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-              Click to sync your subscription status with Stripe if you see incorrect information
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>
             {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
               <>
                 {/* Upgrade button - show if not on Ultra */}
