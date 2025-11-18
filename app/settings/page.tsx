@@ -201,6 +201,38 @@ export default function SettingsPage() {
     setShowConfirmModal(true);
   };
 
+  const handleCancelPlanChange = async () => {
+    setConfirmModalData({
+      title: 'Cancel Scheduled Plan Change?',
+      message: 'Your plan will remain on the current tier and you will not be downgraded.',
+      onConfirm: async () => {
+        setShowConfirmModal(false);
+        setPortalLoading(true);
+        try {
+          const response = await fetch('/api/stripe/cancel-plan-change', {
+            method: 'POST',
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            setMessage('✅ Scheduled plan change cancelled! You will stay on your current plan.');
+            // Refresh user data
+            await checkUser();
+          } else {
+            setMessage(data.error || 'Failed to cancel plan change');
+          }
+        } catch (error) {
+          setMessage('Error cancelling plan change');
+          console.error(error);
+        } finally {
+          setPortalLoading(false);
+        }
+      },
+    });
+    setShowConfirmModal(true);
+  };
+
   const handleChangePlan = async (newPriceId: string, planName: string, isDowngrade: boolean) => {
     console.log('handleChangePlan called:', { newPriceId, planName, isDowngrade });
 
@@ -339,13 +371,34 @@ export default function SettingsPage() {
                 marginBottom: '16px',
               }}
             >
-              <p style={{ fontSize: '14px', color: '#ff9800', fontWeight: 'bold', marginBottom: '4px' }}>
-                ⚠️ Scheduled Plan Change
-              </p>
-              <p style={{ fontSize: '14px', color: '#ccc' }}>
-                Your plan will change to <strong>{getPlanName(userData.scheduled_plan_change)}</strong> on{' '}
-                <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong>
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '14px', color: '#ff9800', fontWeight: 'bold', marginBottom: '4px' }}>
+                    ⚠️ Scheduled Plan Change
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#ccc' }}>
+                    Your plan will change to <strong>{getPlanName(userData.scheduled_plan_change)}</strong> on{' '}
+                    <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong>
+                  </p>
+                </div>
+                <button
+                  onClick={handleCancelPlanChange}
+                  disabled={portalLoading}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    background: 'transparent',
+                    color: '#ff9800',
+                    border: '1px solid #ff9800',
+                    borderRadius: '6px',
+                    cursor: portalLoading ? 'not-allowed' : 'pointer',
+                    opacity: portalLoading ? 0.7 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {portalLoading ? 'Canceling...' : 'Cancel Change'}
+                </button>
+              </div>
             </div>
           )}
 
