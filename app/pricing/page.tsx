@@ -4,63 +4,51 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '/month',
-    description: 'Perfect for trying out Yumlo',
-    features: [
-      '5 AI meal generations',
-      'Basic recipe suggestions',
-      'Standard support',
-    ],
-    priceId: null, // Free tier
-    buttonText: 'Get Started',
-    popular: false,
-  },
-  {
-    name: 'Basic',
-    price: '$7',
-    period: '/month',
-    description: 'Great for regular meal planning',
-    features: [
-      'Unlimited AI meal generations',
-      'Advanced recipe customization',
-      'Dietary restrictions & allergies',
-      'Macro tracking',
-      'Priority support',
-    ],
-    priceId: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
-    buttonText: 'Subscribe',
-    popular: true,
-  },
-  {
-    name: 'Ultra',
-    price: '$12',
-    period: '/month',
-    description: 'For the ultimate meal planning experience',
-    features: [
-      'Everything in Basic',
-      'Meal prep scheduling',
-      'Shopping list generation',
-      'Nutrition analysis',
-      'Family meal planning',
-      'Premium support',
-    ],
-    priceId: process.env.NEXT_PUBLIC_STRIPE_ULTRA_PRICE_ID,
-    buttonText: 'Subscribe',
-    popular: false,
-  },
-];
+interface PriceData {
+  id: string;
+  amount: number | null;
+  currency: string;
+  interval: string;
+}
+
+interface StripePrices {
+  basic: PriceData;
+  ultra: PriceData;
+}
+
+const formatPrice = (amount: number | null, currency: string) => {
+  if (!amount) return '0';
+  const price = amount / 100; // Stripe amounts are in cents
+  if (currency.toLowerCase() === 'czk') {
+    return `${Math.round(price)} Kč`;
+  }
+  return `${price} ${currency.toUpperCase()}`;
+};
 
 export default function PricingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
+  const [prices, setPrices] = useState<StripePrices | null>(null);
+  const [pricesLoading, setPricesLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch prices from Stripe
+    const fetchPrices = async () => {
+      try {
+        const response = await fetch('/api/stripe/prices');
+        const data = await response.json();
+        if (response.ok) {
+          setPrices(data);
+        }
+      } catch (error) {
+        console.error('Error fetching prices:', error);
+      } finally {
+        setPricesLoading(false);
+      }
+    };
+
     // Fetch user's current subscription in background (non-blocking)
     const fetchUserPlan = async () => {
       try {
@@ -78,6 +66,8 @@ export default function PricingPage() {
         setPlanLoading(false);
       }
     };
+
+    fetchPrices();
     fetchUserPlan();
   }, []);
 
@@ -128,6 +118,57 @@ export default function PricingPage() {
       setLoading(null);
     }
   };
+
+  // Generate plans dynamically based on fetched prices
+  const plans = [
+    {
+      name: 'Free',
+      price: '0 Kč',
+      period: '/month',
+      description: 'Perfect for trying out Yumlo',
+      features: [
+        '5 AI meal generations',
+        'Basic recipe suggestions',
+        'Standard support',
+      ],
+      priceId: null,
+      buttonText: 'Get Started',
+      popular: false,
+    },
+    {
+      name: 'Basic',
+      price: prices?.basic ? formatPrice(prices.basic.amount, prices.basic.currency) : '...',
+      period: '/month',
+      description: 'Great for regular meal planning',
+      features: [
+        'Unlimited AI meal generations',
+        'Advanced recipe customization',
+        'Dietary restrictions & allergies',
+        'Macro tracking',
+        'Priority support',
+      ],
+      priceId: prices?.basic?.id || process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID,
+      buttonText: 'Subscribe',
+      popular: true,
+    },
+    {
+      name: 'Ultra',
+      price: prices?.ultra ? formatPrice(prices.ultra.amount, prices.ultra.currency) : '...',
+      period: '/month',
+      description: 'For the ultimate meal planning experience',
+      features: [
+        'Everything in Basic',
+        'Meal prep scheduling',
+        'Shopping list generation',
+        'Nutrition analysis',
+        'Family meal planning',
+        'Premium support',
+      ],
+      priceId: prices?.ultra?.id || process.env.NEXT_PUBLIC_STRIPE_ULTRA_PRICE_ID,
+      buttonText: 'Subscribe',
+      popular: false,
+    },
+  ];
 
   return (
     <div style={{ minHeight: '100vh', padding: '40px 20px', background: '#0a0a0a' }}>

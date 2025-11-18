@@ -12,6 +12,27 @@ interface UserData {
   subscription_current_period_end?: string;
 }
 
+interface PriceData {
+  id: string;
+  amount: number | null;
+  currency: string;
+  interval: string;
+}
+
+interface StripePrices {
+  basic: PriceData;
+  ultra: PriceData;
+}
+
+const formatPrice = (amount: number | null, currency: string) => {
+  if (!amount) return '0';
+  const price = amount / 100;
+  if (currency.toLowerCase() === 'czk') {
+    return `${Math.round(price)} Kč`;
+  }
+  return `${price} ${currency.toUpperCase()}`;
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -20,10 +41,24 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
+  const [prices, setPrices] = useState<StripePrices | null>(null);
 
   useEffect(() => {
     checkUser();
+    fetchPrices();
   }, []);
+
+  const fetchPrices = async () => {
+    try {
+      const response = await fetch('/api/stripe/prices');
+      const data = await response.json();
+      if (response.ok) {
+        setPrices(data);
+      }
+    } catch (error) {
+      console.error('Error fetching prices:', error);
+    }
+  };
 
   const checkUser = async () => {
     const {
@@ -147,15 +182,44 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSyncSubscription = async () => {
+    setPortalLoading(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/stripe/sync-subscription', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage('Subscription synced successfully!');
+        // Refresh user data
+        await checkUser();
+      } else {
+        setMessage(data.error || 'Failed to sync subscription');
+      }
+    } catch (error) {
+      setMessage('Error syncing subscription');
+      console.error(error);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   const getPlanName = (planId?: string) => {
     if (!planId) return 'Free';
-    // Check against actual Stripe price IDs
-    if (planId === 'price_1SU4aiQzCEmOXTX6mnfngIiz') {
-      return 'Basic (175 Kč/month)';
+
+    if (!prices) return 'Loading...';
+
+    // Check against fetched Stripe price IDs
+    if (planId === prices.basic.id) {
+      return `Basic (${formatPrice(prices.basic.amount, prices.basic.currency)}/month)`;
     }
-    if (planId === 'price_1SU4bwQzCEmOXTX6YKLtsHLH') {
-      return 'Ultra (300 Kč/month)';
+    if (planId === prices.ultra.id) {
+      return `Ultra (${formatPrice(prices.ultra.amount, prices.ultra.currency)}/month)`;
     }
+
     return 'Free';
   };
 
@@ -214,11 +278,33 @@ export default function SettingsPage() {
             )}
           </div>
 
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              onClick={handleSyncSubscription}
+              disabled={portalLoading}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                background: 'transparent',
+                color: '#888',
+                border: '1px solid #444',
+                borderRadius: '6px',
+                cursor: portalLoading ? 'not-allowed' : 'pointer',
+                opacity: portalLoading ? 0.7 : 1,
+              }}
+            >
+              {portalLoading ? 'Syncing...' : 'Sync with Stripe'}
+            </button>
+            <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+              Click to sync your subscription status with Stripe if you see incorrect information
+            </p>
+          </div>
+
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
               <>
                 {/* Upgrade button - show if not on Ultra */}
-                {userData.subscription_plan !== 'price_1SU4bwQzCEmOXTX6YKLtsHLH' && (
+                {prices && userData.subscription_plan !== prices.ultra.id && (
                   <Link
                     href="/pricing"
                     style={{
@@ -236,9 +322,9 @@ export default function SettingsPage() {
                   </Link>
                 )}
                 {/* Downgrade button - show if on Ultra */}
-                {userData.subscription_plan === 'price_1SU4bwQzCEmOXTX6YKLtsHLH' && (
+                {prices && userData.subscription_plan === prices.ultra.id && (
                   <button
-                    onClick={() => handleChangePlan('price_1SU4aiQzCEmOXTX6mnfngIiz', 'Basic', true)}
+                    onClick={() => handleChangePlan(prices.basic.id, 'Basic', true)}
                     disabled={portalLoading}
                     style={{
                       padding: '10px 20px',
