@@ -69,6 +69,7 @@ export default function SettingsPage() {
       const response = await fetch('/api/stripe/prices');
       const data = await response.json();
       if (response.ok) {
+        console.log('Prices loaded:', data);
         setPrices(data);
       }
     } catch (error) {
@@ -93,13 +94,15 @@ export default function SettingsPage() {
       .eq('id', user.id)
       .single();
 
-    setUserData({
+    const newUserData = {
       email: user.email || '',
       subscription_status: data?.subscription_status,
       subscription_plan: data?.subscription_plan,
       subscription_current_period_end: data?.subscription_current_period_end,
-    });
+    };
 
+    console.log('User data loaded:', newUserData);
+    setUserData(newUserData);
     setLoading(false);
   };
 
@@ -159,14 +162,21 @@ export default function SettingsPage() {
   };
 
   const handleChangePlan = async (newPriceId: string, planName: string, isDowngrade: boolean) => {
+    console.log('handleChangePlan called:', { newPriceId, planName, isDowngrade });
+
     const action = isDowngrade ? 'downgrade' : 'upgrade';
     const message = isDowngrade
       ? `Downgrade to ${planName}? You'll keep your current plan until the end of this billing period, then automatically switch to ${planName}.`
       : `Upgrade to ${planName}? You'll be charged the full price immediately and your billing cycle will reset to today.`;
 
+    console.log('Showing confirmation dialog:', message);
+
     if (!confirm(message)) {
+      console.log('User cancelled confirmation');
       return;
     }
+
+    console.log('User confirmed, proceeding with plan change');
 
     setPortalLoading(true);
     try {
@@ -275,7 +285,10 @@ export default function SettingsPage() {
                 {/* Upgrade button - show if not on Ultra */}
                 {prices && userData.subscription_plan !== prices.ultra.id && (
                   <button
-                    onClick={() => handleChangePlan(prices.ultra.id, 'Ultra', false)}
+                    onClick={() => {
+                      console.log('Upgrade button clicked!', { ultraId: prices.ultra.id });
+                      handleChangePlan(prices.ultra.id, 'Ultra', false);
+                    }}
                     disabled={portalLoading}
                     style={{
                       padding: '10px 20px',
