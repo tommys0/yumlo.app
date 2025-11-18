@@ -37,10 +37,17 @@ export default function DashboardPage() {
       const { data } = await supabase
         .from("users")
         .select(
-          "subscription_status, subscription_plan, generation_count, generation_limit, scheduled_plan_change, scheduled_change_date",
+          "subscription_status, subscription_plan, generation_count, generation_limit, scheduled_plan_change, scheduled_change_date, onboarding_completed",
         )
         .eq("id", user.id)
         .single();
+
+      // Check if onboarding is completed
+      if (data && !data.onboarding_completed) {
+        console.log('Onboarding not completed, redirecting...');
+        router.push("/onboarding");
+        return;
+      }
 
       setUser(user);
       setUserData(data);

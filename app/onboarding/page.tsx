@@ -414,24 +414,6 @@ export default function OnboardingPage() {
               </button>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => router.push('/dashboard')}
-            style={{
-              width: '100%',
-              marginTop: '16px',
-              padding: '8px',
-              fontSize: '14px',
-              background: 'transparent',
-              color: '#666',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
-            Skip for now
-          </button>
         </form>
       </div>
     </div>

@@ -124,9 +124,16 @@ export default function SettingsPage() {
     // Fetch user data from database
     const { data } = await supabase
       .from('users')
-      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date')
+      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, onboarding_completed')
       .eq('id', user.id)
       .single();
+
+    // Check if onboarding is completed
+    if (data && !data.onboarding_completed) {
+      console.log('Onboarding not completed, redirecting...');
+      router.push('/onboarding');
+      return;
+    }
 
     const newUserData = {
       email: user.email || '',
