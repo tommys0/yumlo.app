@@ -114,10 +114,8 @@ export async function POST(req: NextRequest) {
       customerId: userData?.stripe_customer_id,
     });
 
-    const session = await stripe.checkout.sessions.create({
-      // CRITICAL: Reuse existing customer to prevent duplicates
-      customer: userData?.stripe_customer_id || undefined,
-      customer_email: user.email, // Fallback for new customers
+    // CRITICAL: Use either customer OR customer_email, not both
+    const checkoutParams: any = {
       line_items: [
         {
           price: priceId,
@@ -135,7 +133,16 @@ export async function POST(req: NextRequest) {
       metadata: {
         userId: user.id,
       },
-    });
+    };
+
+    // Add customer ID if exists, otherwise use email to create new customer
+    if (userData?.stripe_customer_id) {
+      checkoutParams.customer = userData.stripe_customer_id;
+    } else {
+      checkoutParams.customer_email = user.email;
+    }
+
+    const session = await stripe.checkout.sessions.create(checkoutParams);
 
     console.log('Checkout session created:', {
       sessionId: session.id,
