@@ -48,11 +48,52 @@ export default function SettingsPage() {
     message: string;
     onConfirm: () => void;
   } | null>(null);
-  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     checkUser();
     fetchPrices();
+
+    // Set up real-time subscription to listen for DB changes
+    let subscription: any;
+
+    const setupRealtimeSubscription = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      // Subscribe to changes in the users table for this user
+      subscription = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'users',
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('🔔 Real-time update detected:', payload);
+            // Automatically refresh user data when DB changes
+            checkUser();
+          }
+        )
+        .subscribe();
+
+      console.log('✅ Real-time sync enabled');
+    };
+
+    setupRealtimeSubscription();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+        console.log('🔕 Real-time sync disabled');
+      }
+    };
   }, []);
 
   const fetchPrices = async () => {
@@ -121,31 +162,6 @@ export default function SettingsPage() {
       setMessage('Password updated successfully!');
       setNewPassword('');
       setConfirmPassword('');
-    }
-  };
-
-  const handleSyncWithStripe = async () => {
-    setSyncing(true);
-    setMessage('');
-    try {
-      const response = await fetch('/api/stripe/sync-subscription', {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage('✅ Synced with Stripe! Refreshing...');
-        // Refresh user data
-        await checkUser();
-      } else {
-        setMessage(`❌ Sync failed: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      setMessage('❌ Error syncing with Stripe');
-      console.error(error);
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -305,29 +321,6 @@ export default function SettingsPage() {
                 Renews on: {new Date(userData.subscription_current_period_end).toLocaleDateString()}
               </p>
             )}
-          </div>
-
-          {/* Sync button - helpful if webhooks fail or manual changes in Stripe */}
-          <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #222' }}>
-            <button
-              onClick={handleSyncWithStripe}
-              disabled={syncing}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                background: 'transparent',
-                color: '#888',
-                border: '1px solid #333',
-                borderRadius: '6px',
-                cursor: syncing ? 'not-allowed' : 'pointer',
-                opacity: syncing ? 0.6 : 1,
-              }}
-            >
-              {syncing ? '🔄 Syncing...' : '🔄 Refresh from Stripe'}
-            </button>
-            <p style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
-              Click if subscription doesn't match Stripe dashboard
-            </p>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>

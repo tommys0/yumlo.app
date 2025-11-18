@@ -43,6 +43,39 @@ export default function DashboardPage() {
       setUser(user);
       setUserData(data);
       setLoading(false);
+
+      // Set up real-time subscription to listen for DB changes
+      const subscription = supabase
+        .channel('dashboard-subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'users',
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('🔔 Dashboard: Real-time update detected:', payload);
+            // Automatically update user data when DB changes
+            const newData = payload.new as any;
+            setUserData({
+              subscription_status: newData.subscription_status,
+              subscription_plan: newData.subscription_plan,
+              generation_count: newData.generation_count,
+              generation_limit: newData.generation_limit,
+            });
+          }
+        )
+        .subscribe();
+
+      console.log('✅ Dashboard: Real-time sync enabled');
+
+      // Cleanup on unmount
+      return () => {
+        subscription.unsubscribe();
+        console.log('🔕 Dashboard: Real-time sync disabled');
+      };
     };
 
     getUser();
