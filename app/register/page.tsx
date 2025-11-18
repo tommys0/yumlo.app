@@ -43,7 +43,7 @@ export default function RegisterPage() {
       setSuccess(true);
 
       setTimeout(() => {
-        router.push('/login');
+        router.push('/onboarding');
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration');
@@ -176,7 +176,7 @@ export default function RegisterPage() {
 
         {success && (
           <div style={{ color: 'green', marginBottom: '15px' }}>
-            Registration successful! Redirecting to login...
+            Registration successful! Taking you to onboarding...
           </div>
         )}
 
