@@ -10,6 +10,8 @@ interface UserData {
   subscription_status?: string;
   subscription_plan?: string;
   subscription_current_period_end?: string;
+  scheduled_plan_change?: string;
+  scheduled_change_date?: string;
 }
 
 interface PriceData {
@@ -122,7 +124,7 @@ export default function SettingsPage() {
     // Fetch user data from database
     const { data } = await supabase
       .from('users')
-      .select('subscription_status, subscription_plan, subscription_current_period_end')
+      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date')
       .eq('id', user.id)
       .single();
 
@@ -131,6 +133,8 @@ export default function SettingsPage() {
       subscription_status: data?.subscription_status,
       subscription_plan: data?.subscription_plan,
       subscription_current_period_end: data?.subscription_current_period_end,
+      scheduled_plan_change: data?.scheduled_plan_change,
+      scheduled_change_date: data?.scheduled_change_date,
     };
 
     console.log('User data loaded:', newUserData);
@@ -322,6 +326,28 @@ export default function SettingsPage() {
               </p>
             )}
           </div>
+
+          {/* Scheduled Plan Change Notice */}
+          {userData?.scheduled_plan_change && userData?.scheduled_change_date && (
+            <div
+              style={{
+                background: '#1a1a1a',
+                border: '1px solid #ff9800',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginTop: '16px',
+                marginBottom: '16px',
+              }}
+            >
+              <p style={{ fontSize: '14px', color: '#ff9800', fontWeight: 'bold', marginBottom: '4px' }}>
+                ⚠️ Scheduled Plan Change
+              </p>
+              <p style={{ fontSize: '14px', color: '#ccc' }}>
+                Your plan will change to <strong>{getPlanName(userData.scheduled_plan_change)}</strong> on{' '}
+                <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong>
+              </p>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>
             {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (

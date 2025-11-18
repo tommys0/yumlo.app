@@ -114,6 +114,20 @@ export async function POST(req: NextRequest) {
           },
         }
       ) as Stripe.Subscription;
+
+      // Save scheduled downgrade to database for UI display
+      await supabase
+        .from('users')
+        .update({
+          scheduled_plan_change: newPriceId,
+          scheduled_change_date: effectiveDate,
+        })
+        .eq('id', user.id);
+
+      console.log('Scheduled downgrade saved to database:', {
+        scheduled_plan_change: newPriceId,
+        scheduled_change_date: effectiveDate,
+      });
     }
 
     console.log('Plan changed:', {

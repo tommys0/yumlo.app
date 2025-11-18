@@ -92,17 +92,37 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ received: true, warning: 'No userId' });
         }
 
+        // Check if there was a scheduled change and if it has now taken effect
+        // If the subscription plan changed, clear the scheduled change fields
+        const { data: currentUserData } = await supabaseAdmin
+          .from('users')
+          .select('subscription_plan, scheduled_plan_change')
+          .eq('id', userId)
+          .single();
+
+        const clearScheduledChange = currentUserData?.scheduled_plan_change &&
+          currentUserData?.subscription_plan !== priceId;
+
         // Update user subscription status in database
         console.log('💾 Updating database for user:', userId);
+        const updateData: any = {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          subscription_status: subscription.status,
+          subscription_plan: priceId,
+          subscription_current_period_end: periodEndDate,
+        };
+
+        // Clear scheduled change if the plan actually changed
+        if (clearScheduledChange) {
+          console.log('🔄 Scheduled plan change has taken effect, clearing scheduled fields');
+          updateData.scheduled_plan_change = null;
+          updateData.scheduled_change_date = null;
+        }
+
         const { error, data: updateResult } = await supabaseAdmin
           .from('users')
-          .update({
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscription.id,
-            subscription_status: subscription.status,
-            subscription_plan: priceId,
-            subscription_current_period_end: periodEndDate,
-          })
+          .update(updateData)
           .eq('id', userId)
           .select();
 

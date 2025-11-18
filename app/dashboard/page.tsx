@@ -12,6 +12,8 @@ interface UserData {
   subscription_plan?: string;
   generation_count: number;
   generation_limit: number;
+  scheduled_plan_change?: string;
+  scheduled_change_date?: string;
 }
 
 export default function DashboardPage() {
@@ -35,7 +37,7 @@ export default function DashboardPage() {
       const { data } = await supabase
         .from("users")
         .select(
-          "subscription_status, subscription_plan, generation_count, generation_limit",
+          "subscription_status, subscription_plan, generation_count, generation_limit, scheduled_plan_change, scheduled_change_date",
         )
         .eq("id", user.id)
         .single();
@@ -64,6 +66,8 @@ export default function DashboardPage() {
               subscription_plan: newData.subscription_plan,
               generation_count: newData.generation_count,
               generation_limit: newData.generation_limit,
+              scheduled_plan_change: newData.scheduled_plan_change,
+              scheduled_change_date: newData.scheduled_change_date,
             });
           }
         )
