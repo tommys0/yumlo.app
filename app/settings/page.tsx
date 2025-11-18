@@ -42,6 +42,12 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
   const [prices, setPrices] = useState<StripePrices | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -134,78 +140,86 @@ export default function SettingsPage() {
   };
 
   const handleCancelSubscription = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? You will lose access to unlimited generations at the end of your billing period.')) {
-      return;
-    }
+    setConfirmModalData({
+      title: 'Cancel Subscription?',
+      message: 'You will lose access to unlimited generations at the end of your billing period.',
+      onConfirm: async () => {
+        setShowConfirmModal(false);
+        setPortalLoading(true);
+        try {
+          const response = await fetch('/api/stripe/cancel-subscription', {
+            method: 'POST',
+          });
 
-    setPortalLoading(true);
-    try {
-      const response = await fetch('/api/stripe/cancel-subscription', {
-        method: 'POST',
-      });
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage('Subscription cancelled successfully. You can still use your plan until the end of the billing period.');
-        // Refresh user data
-        await checkUser();
-      } else {
-        setMessage(data.error || 'Failed to cancel subscription');
-      }
-    } catch (error) {
-      setMessage('Error cancelling subscription');
-      console.error(error);
-    } finally {
-      setPortalLoading(false);
-    }
+          if (response.ok) {
+            setMessage('Subscription cancelled successfully. You can still use your plan until the end of the billing period.');
+            // Refresh user data
+            await checkUser();
+          } else {
+            setMessage(data.error || 'Failed to cancel subscription');
+          }
+        } catch (error) {
+          setMessage('Error cancelling subscription');
+          console.error(error);
+        } finally {
+          setPortalLoading(false);
+        }
+      },
+    });
+    setShowConfirmModal(true);
   };
 
   const handleChangePlan = async (newPriceId: string, planName: string, isDowngrade: boolean) => {
     console.log('handleChangePlan called:', { newPriceId, planName, isDowngrade });
 
     const action = isDowngrade ? 'downgrade' : 'upgrade';
-    const message = isDowngrade
-      ? `Downgrade to ${planName}? You'll keep your current plan until the end of this billing period, then automatically switch to ${planName}.`
-      : `Upgrade to ${planName}? You'll be charged the full price immediately and your billing cycle will reset to today.`;
+    const title = isDowngrade ? `Downgrade to ${planName}?` : `Upgrade to ${planName}?`;
+    const modalMessage = isDowngrade
+      ? `You'll keep your current plan until the end of this billing period, then automatically switch to ${planName}.`
+      : `You'll be charged the full price immediately and your billing cycle will reset to today.`;
 
-    console.log('Showing confirmation dialog:', message);
+    console.log('Showing confirmation modal:', modalMessage);
 
-    if (!confirm(message)) {
-      console.log('User cancelled confirmation');
-      return;
-    }
+    // Show custom modal and wait for user confirmation
+    setConfirmModalData({
+      title,
+      message: modalMessage,
+      onConfirm: async () => {
+        console.log('User confirmed, proceeding with plan change');
+        setShowConfirmModal(false);
+        setPortalLoading(true);
+        try {
+          const response = await fetch('/api/stripe/change-plan', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ newPriceId }),
+          });
 
-    console.log('User confirmed, proceeding with plan change');
+          const data = await response.json();
 
-    setPortalLoading(true);
-    try {
-      const response = await fetch('/api/stripe/change-plan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ newPriceId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const successMessage = isDowngrade
-          ? `Plan scheduled! You'll keep your current plan until the end of this billing period, then switch to ${planName}.`
-          : `Plan upgraded! You now have access to ${planName} features. Your billing cycle has been reset.`;
-        setMessage(successMessage);
-        // Refresh user data
-        await checkUser();
-      } else {
-        setMessage(data.error || `Failed to ${action} plan`);
-      }
-    } catch (error) {
-      setMessage(`Error ${action}ing plan`);
-      console.error(error);
-    } finally {
-      setPortalLoading(false);
-    }
+          if (response.ok) {
+            const successMessage = isDowngrade
+              ? `Plan scheduled! You'll keep your current plan until the end of this billing period, then switch to ${planName}.`
+              : `Plan upgraded! You now have access to ${planName} features. Your billing cycle has been reset.`;
+            setMessage(successMessage);
+            // Refresh user data
+            await checkUser();
+          } else {
+            setMessage(data.error || `Failed to ${action} plan`);
+          }
+        } catch (error) {
+          setMessage(`Error ${action}ing plan`);
+          console.error(error);
+        } finally {
+          setPortalLoading(false);
+        }
+      },
+    });
+    setShowConfirmModal(true);
   };
 
   const getPlanName = (planId?: string) => {
@@ -456,6 +470,81 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Custom Confirmation Modal */}
+      {showConfirmModal && confirmModalData && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => {
+            setShowConfirmModal(false);
+            console.log('User cancelled modal by clicking backdrop');
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '500px',
+              width: '90%',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>
+              {confirmModalData.title}
+            </h2>
+            <p style={{ fontSize: '16px', color: '#ccc', marginBottom: '32px', lineHeight: '1.5' }}>
+              {confirmModalData.message}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  console.log('User cancelled modal');
+                }}
+                style={{
+                  padding: '10px 24px',
+                  fontSize: '14px',
+                  background: 'transparent',
+                  color: '#888',
+                  border: '1px solid #444',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmModalData.onConfirm}
+                style={{
+                  padding: '10px 24px',
+                  fontSize: '14px',
+                  background: '#fff',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
