@@ -103,6 +103,14 @@ export default function PricingPage() {
 
       if (!response.ok) {
         console.error('API Error:', data);
+
+        // If user already has an active subscription, redirect to settings
+        if (data.hasActiveSubscription) {
+          alert(data.error || 'You already have an active subscription.');
+          router.push('/settings');
+          return;
+        }
+
         alert(`Error: ${data.error || 'Failed to create checkout session'}`);
         return;
       }

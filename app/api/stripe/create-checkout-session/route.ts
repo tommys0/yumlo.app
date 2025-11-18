@@ -46,6 +46,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if user already has an active subscription
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('subscription_status, subscription_plan')
+      .eq('id', user.id)
+      .single();
+
+    console.log('User subscription status:', {
+      status: userData?.subscription_status,
+      plan: userData?.subscription_plan
+    });
+
+    if (userError) {
+      console.error('Error fetching user data:', userError);
+      return NextResponse.json(
+        { error: 'Failed to verify subscription status' },
+        { status: 500 }
+      );
+    }
+
+    // Prevent multiple active subscriptions
+    if (userData?.subscription_status === 'active' || userData?.subscription_status === 'trialing') {
+      console.log('User already has active subscription, rejecting new checkout');
+      return NextResponse.json(
+        {
+          error: 'You already have an active subscription. Please use the settings page to change your plan.',
+          hasActiveSubscription: true
+        },
+        { status: 400 }
+      );
+    }
+
     // Create checkout session
     console.log('Creating Stripe checkout session...');
     const session = await stripe.checkout.sessions.create({
