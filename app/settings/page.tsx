@@ -274,21 +274,23 @@ export default function SettingsPage() {
               <>
                 {/* Upgrade button - show if not on Ultra */}
                 {prices && userData.subscription_plan !== prices.ultra.id && (
-                  <Link
-                    href="/pricing"
+                  <button
+                    onClick={() => handleChangePlan(prices.ultra.id, 'Ultra', false)}
+                    disabled={portalLoading}
                     style={{
                       padding: '10px 20px',
                       fontSize: '14px',
                       background: '#fff',
                       color: '#000',
-                      textDecoration: 'none',
+                      border: 'none',
                       borderRadius: '8px',
                       fontWeight: 'bold',
-                      display: 'inline-block',
+                      cursor: portalLoading ? 'not-allowed' : 'pointer',
+                      opacity: portalLoading ? 0.7 : 1,
                     }}
                   >
-                    Upgrade Plan
-                  </Link>
+                    {portalLoading ? 'Processing...' : 'Upgrade to Ultra'}
+                  </button>
                 )}
                 {/* Downgrade button - show if on Ultra */}
                 {prices && userData.subscription_plan === prices.ultra.id && (
