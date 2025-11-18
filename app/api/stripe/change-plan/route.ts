@@ -74,7 +74,8 @@ export async function POST(req: NextRequest) {
         }
       ) as Stripe.Subscription;
     } else {
-      // DOWNGRADE: Finish current period, then switch at next billing
+      // DOWNGRADE: Change takes effect at end of billing period
+      // Stripe updates the subscription immediately but user keeps current access until period ends
       updatedSubscription = await stripe.subscriptions.update(
         userData.stripe_subscription_id,
         {
@@ -86,6 +87,11 @@ export async function POST(req: NextRequest) {
           ],
           proration_behavior: 'none', // No proration - no refund
           billing_cycle_anchor: 'unchanged', // Keep same billing date
+          metadata: {
+            ...subscription.metadata,
+            downgrade_from: currentPrice, // Track what they're downgrading from
+            downgrade_effective_date: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          },
         }
       ) as Stripe.Subscription;
     }

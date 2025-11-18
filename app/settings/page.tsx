@@ -186,10 +186,14 @@ export default function SettingsPage() {
           const data = await response.json();
 
           if (response.ok) {
-            const successMessage = isDowngrade
-              ? `Plan scheduled! You'll keep your current plan until the end of this billing period, then switch to ${planName}.`
-              : `Plan upgraded! You now have access to ${planName} features. Your billing cycle has been reset.`;
-            setMessage(successMessage);
+            if (isDowngrade) {
+              const periodEnd = userData?.subscription_current_period_end
+                ? new Date(userData.subscription_current_period_end).toLocaleDateString()
+                : 'the end of your billing period';
+              setMessage(`✅ Downgrade scheduled! You'll keep your current Ultra plan and features until ${periodEnd}. After that, you'll be switched to ${planName} and charged accordingly.`);
+            } else {
+              setMessage(`✅ Plan upgraded! You now have access to ${planName} features. Your billing cycle has been reset to today.`);
+            }
             // Refresh user data
             await checkUser();
           } else {
@@ -303,8 +307,9 @@ export default function SettingsPage() {
                     {portalLoading ? 'Processing...' : 'Upgrade to Ultra'}
                   </button>
                 )}
-                {/* Downgrade button - show if on Ultra */}
-                {prices && userData.subscription_plan === prices.ultra.id && (
+                {/* Downgrade button - show ONLY if currently on Ultra in DB */}
+                {/* Don't show if already downgraded (plan shows as Basic but still have Ultra access) */}
+                {prices && userData.subscription_plan === prices.ultra.id && userData.subscription_status === 'active' && (
                   <button
                     onClick={() => handleChangePlan(prices.basic.id, 'Basic', true)}
                     disabled={portalLoading}
