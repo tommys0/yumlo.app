@@ -82,8 +82,17 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // IMPORTANT: Only allow submission on step 4
+    if (step !== 4) {
+      console.log('Form submission blocked - not on step 4');
+      return;
+    }
+
     setError('');
     setLoading(true);
+
+    console.log('Submitting onboarding form...', formData);
 
     try {
       // Convert allergies string to array
@@ -131,7 +140,11 @@ export default function OnboardingPage() {
     }
   };
 
-  const nextStep = () => {
+  const nextStep = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (step === 1 && !formData.name.trim()) {
       setError('Please enter your name');
       return;
@@ -140,9 +153,21 @@ export default function OnboardingPage() {
     setStep(step + 1);
   };
 
-  const prevStep = () => {
+  const prevStep = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setError('');
     setStep(step - 1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent Enter from submitting form on steps 1-3
+    if (e.key === 'Enter' && step < 4) {
+      e.preventDefault();
+      console.log('Enter key blocked on step', step);
+    }
   };
 
   return (
@@ -171,7 +196,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
           {/* Step 1: Name */}
           {step === 1 && (
             <div style={{ marginBottom: '32px' }}>
@@ -365,7 +390,7 @@ export default function OnboardingPage() {
             {step > 1 && (
               <button
                 type="button"
-                onClick={prevStep}
+                onClick={(e) => prevStep(e)}
                 style={{
                   flex: 1,
                   padding: '12px',
@@ -383,7 +408,7 @@ export default function OnboardingPage() {
             {step < 4 ? (
               <button
                 type="button"
-                onClick={nextStep}
+                onClick={(e) => nextStep(e)}
                 style={{
                   flex: 1,
                   padding: '12px',
