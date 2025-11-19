@@ -12,6 +12,16 @@ interface UserData {
   subscription_current_period_end?: string;
   scheduled_plan_change?: string;
   scheduled_change_date?: string;
+  name?: string;
+  dietary_restrictions?: string[];
+  allergies?: string[];
+  macro_goals?: {
+    protein?: number;
+    carbs?: number;
+    fats?: number;
+    calories?: number;
+  };
+  cuisine_preferences?: string[];
 }
 
 interface PriceData {
@@ -35,12 +45,36 @@ const formatPrice = (amount: number | null, currency: string) => {
   return `${price} ${currency.toUpperCase()}`;
 };
 
+const dietaryOptions = [
+  'None', 'Vegetarian', 'Vegan', 'Pescatarian', 'Keto', 'Paleo',
+  'Gluten-Free', 'Dairy-Free', 'Low-Carb',
+];
+
+const cuisineOptions = [
+  'None', 'Italian', 'Mexican', 'Asian', 'Mediterranean', 'American',
+  'Indian', 'French', 'Japanese', 'Thai', 'Middle Eastern',
+];
+
 export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [activeSection, setActiveSection] = useState<'user' | 'subscription' | 'security'>('subscription');
+
+  // Password change state
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Preferences editing state
+  const [editingPreferences, setEditingPreferences] = useState(false);
+  const [preferenceData, setPreferenceData] = useState({
+    name: '',
+    dietary_restrictions: [] as string[],
+    allergies: '',
+    macro_goals: { protein: '', carbs: '', fats: '', calories: '' },
+    cuisine_preferences: [] as string[],
+  });
+
   const [message, setMessage] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
   const [prices, setPrices] = useState<StripePrices | null>(null);
@@ -124,7 +158,7 @@ export default function SettingsPage() {
     // Fetch user data from database
     const { data } = await supabase
       .from('users')
-      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, onboarding_completed')
+      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, onboarding_completed, name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
       .eq('id', user.id)
       .single();
 
@@ -142,10 +176,30 @@ export default function SettingsPage() {
       subscription_current_period_end: data?.subscription_current_period_end,
       scheduled_plan_change: data?.scheduled_plan_change,
       scheduled_change_date: data?.scheduled_change_date,
+      name: data?.name,
+      dietary_restrictions: data?.dietary_restrictions || [],
+      allergies: data?.allergies || [],
+      macro_goals: data?.macro_goals,
+      cuisine_preferences: data?.cuisine_preferences || [],
     };
 
     console.log('User data loaded:', newUserData);
     setUserData(newUserData);
+
+    // Initialize preference data for editing
+    setPreferenceData({
+      name: data?.name || '',
+      dietary_restrictions: data?.dietary_restrictions || [],
+      allergies: (data?.allergies || []).join(', '),
+      macro_goals: {
+        protein: data?.macro_goals?.protein?.toString() || '',
+        carbs: data?.macro_goals?.carbs?.toString() || '',
+        fats: data?.macro_goals?.fats?.toString() || '',
+        calories: data?.macro_goals?.calories?.toString() || '',
+      },
+      cuisine_preferences: data?.cuisine_preferences || [],
+    });
+
     setLoading(false);
   };
 
@@ -295,6 +349,90 @@ export default function SettingsPage() {
     setShowConfirmModal(true);
   };
 
+  const handleDietaryToggle = (option: string) => {
+    setPreferenceData((prev) => {
+      const isSelected = prev.dietary_restrictions.includes(option);
+      if (isSelected) {
+        return { ...prev, dietary_restrictions: prev.dietary_restrictions.filter((item) => item !== option) };
+      }
+      if (option === 'None') {
+        return { ...prev, dietary_restrictions: ['None'] };
+      }
+      return {
+        ...prev,
+        dietary_restrictions: prev.dietary_restrictions.filter((item) => item !== 'None').concat(option),
+      };
+    });
+  };
+
+  const handleCuisineToggle = (option: string) => {
+    setPreferenceData((prev) => {
+      const isSelected = prev.cuisine_preferences.includes(option);
+      if (isSelected) {
+        return { ...prev, cuisine_preferences: prev.cuisine_preferences.filter((item) => item !== option) };
+      }
+      if (option === 'None') {
+        return { ...prev, cuisine_preferences: ['None'] };
+      }
+      return {
+        ...prev,
+        cuisine_preferences: prev.cuisine_preferences.filter((item) => item !== 'None').concat(option),
+      };
+    });
+  };
+
+  const handleSavePreferences = async () => {
+    setMessage('');
+    setPortalLoading(true);
+
+    try {
+      const allergiesArray = preferenceData.allergies
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+
+      const macroGoals =
+        preferenceData.macro_goals.protein ||
+        preferenceData.macro_goals.carbs ||
+        preferenceData.macro_goals.fats ||
+        preferenceData.macro_goals.calories
+          ? {
+              protein: preferenceData.macro_goals.protein ? parseInt(preferenceData.macro_goals.protein) : null,
+              carbs: preferenceData.macro_goals.carbs ? parseInt(preferenceData.macro_goals.carbs) : null,
+              fats: preferenceData.macro_goals.fats ? parseInt(preferenceData.macro_goals.fats) : null,
+              calories: preferenceData.macro_goals.calories ? parseInt(preferenceData.macro_goals.calories) : null,
+            }
+          : null;
+
+      const response = await fetch('/api/user/update-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: preferenceData.name,
+          dietary_restrictions: preferenceData.dietary_restrictions,
+          allergies: allergiesArray,
+          macro_goals: macroGoals,
+          cuisine_preferences: preferenceData.cuisine_preferences,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage('✅ Preferences updated successfully!');
+        setEditingPreferences(false);
+        await checkUser();
+      } else {
+        setMessage(data.error || 'Failed to update preferences');
+      }
+    } catch (error) {
+      setMessage('Error updating preferences');
+      console.error(error);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   const getPlanName = (planId?: string) => {
     if (!planId) return 'Free';
 
@@ -338,7 +476,31 @@ export default function SettingsPage() {
           <h1 style={{ fontSize: '36px', marginBottom: '8px', color: '#fff' }}>Settings</h1>
         </div>
 
+        {/* Navigation Tabs */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
+          {['subscription', 'user', 'security'].map((section) => (
+            <button
+              key={section}
+              onClick={() => setActiveSection(section as any)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                background: activeSection === section ? '#fff' : 'transparent',
+                color: activeSection === section ? '#000' : '#888',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: activeSection === section ? 'bold' : 'normal',
+                textTransform: 'capitalize',
+              }}
+            >
+              {section}
+            </button>
+          ))}
+        </div>
+
         {/* Subscription Section */}
+        {activeSection === 'subscription' && (
         <div
           style={{
             background: '#111',
@@ -491,8 +653,195 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+        )}
 
-        {/* Account Section */}
+        {/* User Preferences Section */}
+        {activeSection === 'user' && (
+        <div
+          style={{
+            background: '#111',
+            border: '1px solid #333',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+          }}
+        >
+          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>User Preferences</h2>
+
+          {!editingPreferences ? (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ color: '#888', marginBottom: '8px' }}>Name</p>
+                <p style={{ fontSize: '16px', color: '#fff' }}>{userData?.name || 'Not set'}</p>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ color: '#888', marginBottom: '8px' }}>Dietary Restrictions</p>
+                <p style={{ fontSize: '16px', color: '#fff' }}>
+                  {userData?.dietary_restrictions && userData.dietary_restrictions.length > 0
+                    ? userData.dietary_restrictions.join(', ')
+                    : 'None set'}
+                </p>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ color: '#888', marginBottom: '8px' }}>Allergies</p>
+                <p style={{ fontSize: '16px', color: '#fff' }}>
+                  {userData?.allergies && userData.allergies.length > 0
+                    ? userData.allergies.join(', ')
+                    : 'None set'}
+                </p>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <p style={{ color: '#888', marginBottom: '8px' }}>Cuisine Preferences</p>
+                <p style={{ fontSize: '16px', color: '#fff' }}>
+                  {userData?.cuisine_preferences && userData.cuisine_preferences.length > 0
+                    ? userData.cuisine_preferences.join(', ')
+                    : 'None set'}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingPreferences(true)}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  background: '#fff',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Edit Preferences
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Name</label>
+                <input
+                  type="text"
+                  value={preferenceData.name}
+                  onChange={(e) => setPreferenceData({ ...preferenceData, name: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '14px',
+                    background: '#1a1a1a',
+                    color: '#fff',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Dietary Restrictions</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px' }}>
+                  {dietaryOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleDietaryToggle(option)}
+                      style={{
+                        padding: '8px',
+                        fontSize: '13px',
+                        background: preferenceData.dietary_restrictions.includes(option) ? '#fff' : '#1a1a1a',
+                        color: preferenceData.dietary_restrictions.includes(option) ? '#000' : '#fff',
+                        border: '1px solid #333',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Allergies (comma-separated)</label>
+                <input
+                  type="text"
+                  value={preferenceData.allergies}
+                  onChange={(e) => setPreferenceData({ ...preferenceData, allergies: e.target.value })}
+                  placeholder="e.g., peanuts, shellfish, soy"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '14px',
+                    background: '#1a1a1a',
+                    color: '#fff',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Cuisine Preferences</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px' }}>
+                  {cuisineOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleCuisineToggle(option)}
+                      style={{
+                        padding: '8px',
+                        fontSize: '13px',
+                        background: preferenceData.cuisine_preferences.includes(option) ? '#fff' : '#1a1a1a',
+                        color: preferenceData.cuisine_preferences.includes(option) ? '#000' : '#fff',
+                        border: '1px solid #333',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={handleSavePreferences}
+                  disabled={portalLoading}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    background: portalLoading ? '#555' : '#fff',
+                    color: portalLoading ? '#aaa' : '#000',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: portalLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {portalLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  onClick={() => setEditingPreferences(false)}
+                  disabled={portalLoading}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    background: 'transparent',
+                    color: '#888',
+                    border: '1px solid #444',
+                    borderRadius: '8px',
+                    cursor: portalLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        )}
+
+        {/* Security Section */}
+        {activeSection === 'security' && (
+        <>
         <div
           style={{
             background: '#111',
@@ -586,6 +935,8 @@ export default function SettingsPage() {
             </p>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Custom Confirmation Modal */}
