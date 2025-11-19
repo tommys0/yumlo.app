@@ -691,6 +691,14 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div style={{ marginBottom: '16px' }}>
+                <p style={{ color: '#888', marginBottom: '8px' }}>Macro Goals</p>
+                <p style={{ fontSize: '16px', color: '#fff' }}>
+                  {userData?.macro_goals
+                    ? `Protein: ${userData.macro_goals.protein || '-'}g, Carbs: ${userData.macro_goals.carbs || '-'}g, Fats: ${userData.macro_goals.fats || '-'}g, Calories: ${userData.macro_goals.calories || '-'}`
+                    : 'None set'}
+                </p>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
                 <p style={{ color: '#888', marginBottom: '8px' }}>Cuisine Preferences</p>
                 <p style={{ fontSize: '16px', color: '#fff' }}>
                   {userData?.cuisine_preferences && userData.cuisine_preferences.length > 0
@@ -775,6 +783,88 @@ export default function SettingsPage() {
                     borderRadius: '8px',
                   }}
                 />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Macro Goals (optional)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <input
+                    type="number"
+                    value={preferenceData.macro_goals.protein}
+                    onChange={(e) =>
+                      setPreferenceData({
+                        ...preferenceData,
+                        macro_goals: { ...preferenceData.macro_goals, protein: e.target.value },
+                      })
+                    }
+                    placeholder="Protein (g)"
+                    style={{
+                      padding: '10px',
+                      fontSize: '14px',
+                      background: '#1a1a1a',
+                      color: '#fff',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <input
+                    type="number"
+                    value={preferenceData.macro_goals.carbs}
+                    onChange={(e) =>
+                      setPreferenceData({
+                        ...preferenceData,
+                        macro_goals: { ...preferenceData.macro_goals, carbs: e.target.value },
+                      })
+                    }
+                    placeholder="Carbs (g)"
+                    style={{
+                      padding: '10px',
+                      fontSize: '14px',
+                      background: '#1a1a1a',
+                      color: '#fff',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <input
+                    type="number"
+                    value={preferenceData.macro_goals.fats}
+                    onChange={(e) =>
+                      setPreferenceData({
+                        ...preferenceData,
+                        macro_goals: { ...preferenceData.macro_goals, fats: e.target.value },
+                      })
+                    }
+                    placeholder="Fats (g)"
+                    style={{
+                      padding: '10px',
+                      fontSize: '14px',
+                      background: '#1a1a1a',
+                      color: '#fff',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <input
+                    type="number"
+                    value={preferenceData.macro_goals.calories}
+                    onChange={(e) =>
+                      setPreferenceData({
+                        ...preferenceData,
+                        macro_goals: { ...preferenceData.macro_goals, calories: e.target.value },
+                      })
+                    }
+                    placeholder="Calories"
+                    style={{
+                      padding: '10px',
+                      fontSize: '14px',
+                      background: '#1a1a1a',
+                      color: '#fff',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                  />
+                </div>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
