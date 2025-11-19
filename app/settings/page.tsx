@@ -86,20 +86,70 @@ export default function SettingsPage() {
   } | null>(null);
 
   useEffect(() => {
-    checkUser();
-    fetchPrices();
-
-    // Set up real-time subscription to listen for DB changes
     let subscription: any;
 
-    const setupRealtimeSubscription = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const init = async () => {
+      // Get user and prices in parallel
+      const [authResult] = await Promise.all([
+        supabase.auth.getUser(),
+        fetchPrices(),
+      ]);
 
-      if (!user) return;
+      const { data: { user } } = authResult;
 
-      // Subscribe to changes in the users table for this user
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      // Fetch user data from database
+      const { data } = await supabase
+        .from('users')
+        .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, onboarding_completed, name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
+        .eq('id', user.id)
+        .single();
+
+      // Check if onboarding is completed
+      if (data && !data.onboarding_completed) {
+        console.log('Onboarding not completed, redirecting...');
+        router.push('/onboarding');
+        return;
+      }
+
+      const newUserData = {
+        email: user.email || '',
+        subscription_status: data?.subscription_status,
+        subscription_plan: data?.subscription_plan,
+        subscription_current_period_end: data?.subscription_current_period_end,
+        scheduled_plan_change: data?.scheduled_plan_change,
+        scheduled_change_date: data?.scheduled_change_date,
+        name: data?.name,
+        dietary_restrictions: data?.dietary_restrictions || [],
+        allergies: data?.allergies || [],
+        macro_goals: data?.macro_goals,
+        cuisine_preferences: data?.cuisine_preferences || [],
+      };
+
+      console.log('User data loaded:', newUserData);
+      setUserData(newUserData);
+
+      // Initialize preference data for editing
+      setPreferenceData({
+        name: data?.name || '',
+        dietary_restrictions: data?.dietary_restrictions || [],
+        allergies: (data?.allergies || []).join(', '),
+        macro_goals: {
+          protein: data?.macro_goals?.protein?.toString() || '',
+          carbs: data?.macro_goals?.carbs?.toString() || '',
+          fats: data?.macro_goals?.fats?.toString() || '',
+          calories: data?.macro_goals?.calories?.toString() || '',
+        },
+        cuisine_preferences: data?.cuisine_preferences || [],
+      });
+
+      setLoading(false);
+
+      // Set up real-time subscription using the user we already have
       subscription = supabase
         .channel('subscription-changes')
         .on(
@@ -121,7 +171,7 @@ export default function SettingsPage() {
       console.log('✅ Real-time sync enabled');
     };
 
-    setupRealtimeSubscription();
+    init();
 
     // Cleanup subscription on unmount
     return () => {
@@ -130,15 +180,33 @@ export default function SettingsPage() {
         console.log('🔕 Real-time sync disabled');
       }
     };
-  }, []);
+  }, [router]);
 
   const fetchPrices = async () => {
     try {
+      // Check if prices are cached in sessionStorage
+      const cachedPrices = sessionStorage.getItem('stripe_prices');
+      const cacheTimestamp = sessionStorage.getItem('stripe_prices_timestamp');
+      const now = Date.now();
+
+      // Use cached prices if they exist and are less than 1 hour old
+      if (cachedPrices && cacheTimestamp && (now - parseInt(cacheTimestamp)) < 3600000) {
+        console.log('Using cached prices');
+        setPrices(JSON.parse(cachedPrices));
+        return;
+      }
+
+      // Fetch fresh prices from API
+      console.log('Fetching fresh prices from API');
       const response = await fetch('/api/stripe/prices');
       const data = await response.json();
       if (response.ok) {
         console.log('Prices loaded:', data);
         setPrices(data);
+
+        // Cache the prices in sessionStorage
+        sessionStorage.setItem('stripe_prices', JSON.stringify(data));
+        sessionStorage.setItem('stripe_prices_timestamp', now.toString());
       }
     } catch (error) {
       console.error('Error fetching prices:', error);
@@ -449,11 +517,56 @@ export default function SettingsPage() {
     return 'Free';
   };
 
+  // Skeleton shimmer animation styles
+  const shimmerStyles = `
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+  `;
+
+  const skeletonStyle: React.CSSProperties = {
+    background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
+    backgroundSize: '1000px 100%',
+    animation: 'shimmer 2s infinite',
+    borderRadius: '6px',
+  };
+
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Loading...</p>
-      </div>
+      <>
+        <style>{shimmerStyles}</style>
+        <div style={{ minHeight: '100vh', padding: '40px 20px', background: '#0a0a0a' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {/* Header skeleton */}
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ ...skeletonStyle, width: '120px', height: '14px', marginBottom: '20px' }} />
+              <div style={{ ...skeletonStyle, width: '150px', height: '36px', marginBottom: '8px' }} />
+            </div>
+
+            {/* Tabs skeleton */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} style={{ ...skeletonStyle, width: '100px', height: '32px' }} />
+              ))}
+            </div>
+
+            {/* Content skeleton */}
+            <div style={{ background: '#111', border: '1px solid #333', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
+              <div style={{ ...skeletonStyle, width: '200px', height: '24px', marginBottom: '16px' }} />
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ ...skeletonStyle, width: '100px', height: '14px', marginBottom: '8px' }} />
+                <div style={{ ...skeletonStyle, width: '250px', height: '18px' }} />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ ...skeletonStyle, width: '100px', height: '14px', marginBottom: '8px' }} />
+                <div style={{ ...skeletonStyle, width: '180px', height: '18px' }} />
+              </div>
+              <div style={{ ...skeletonStyle, width: '140px', height: '40px', marginTop: '16px' }} />
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 

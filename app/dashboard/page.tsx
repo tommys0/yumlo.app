@@ -128,19 +128,61 @@ export default function DashboardPage() {
     return Math.max(0, remaining);
   };
 
+  // Skeleton shimmer animation styles
+  const shimmerStyles = `
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+  `;
+
+  const skeletonStyle: React.CSSProperties = {
+    background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
+    backgroundSize: '1000px 100%',
+    animation: 'shimmer 2s infinite',
+    borderRadius: '6px',
+  };
+
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#0a0a0a",
-        }}
-      >
-        <p style={{ color: "#fff" }}>Loading...</p>
-      </div>
+      <>
+        <style>{shimmerStyles}</style>
+        <div style={{ minHeight: "100vh", padding: "40px 20px", background: "#0a0a0a" }}>
+          <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+            {/* Header skeleton */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
+              <div style={{ ...skeletonStyle, width: "150px", height: "36px" }} />
+              <div style={{ display: "flex", gap: "12px" }}>
+                <div style={{ ...skeletonStyle, width: "80px", height: "40px" }} />
+                <div style={{ ...skeletonStyle, width: "80px", height: "40px" }} />
+              </div>
+            </div>
+
+            {/* Welcome section skeleton */}
+            <div style={{ background: "#111", border: "1px solid #333", borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
+              <div style={{ ...skeletonStyle, width: "200px", height: "24px", marginBottom: "8px" }} />
+              <div style={{ ...skeletonStyle, width: "150px", height: "16px" }} />
+            </div>
+
+            {/* Stats grid skeleton */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "24px" }}>
+              {[1, 2].map((i) => (
+                <div key={i} style={{ background: "#111", border: "1px solid #333", borderRadius: "12px", padding: "24px" }}>
+                  <div style={{ ...skeletonStyle, width: "140px", height: "14px", marginBottom: "8px" }} />
+                  <div style={{ ...skeletonStyle, width: "100px", height: "32px" }} />
+                </div>
+              ))}
+            </div>
+
+            {/* Main content skeleton */}
+            <div style={{ background: "#111", border: "1px solid #333", borderRadius: "12px", padding: "32px", textAlign: "center" }}>
+              <div style={{ ...skeletonStyle, width: "200px", height: "20px", margin: "0 auto 16px" }} />
+              <div style={{ ...skeletonStyle, width: "300px", height: "16px", margin: "0 auto 24px" }} />
+              <div style={{ ...skeletonStyle, width: "180px", height: "40px", margin: "0 auto" }} />
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
