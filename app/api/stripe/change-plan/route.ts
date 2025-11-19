@@ -69,20 +69,41 @@ export async function POST(req: NextRequest) {
     let updatedSubscription;
 
     if (isUpgrade) {
-      // UPGRADE: Charge full price immediately, reset billing cycle
-      updatedSubscription = await stripe.subscriptions.update(
-        userData.stripe_subscription_id,
-        {
-          items: [
-            {
-              id: subscription.items.data[0].id,
-              price: newPriceId,
-            },
-          ],
-          proration_behavior: 'none', // No proration - charge full price
-          billing_cycle_anchor: 'now', // Reset billing cycle to today
-        }
-      ) as Stripe.Subscription;
+      // UPGRADE: Redirect to checkout to collect payment
+      console.log('Creating checkout session for upgrade');
+
+      // First, cancel the current subscription
+      await stripe.subscriptions.cancel(userData.stripe_subscription_id);
+
+      // Create checkout session for the new plan
+      const checkoutSession = await stripe.checkout.sessions.create({
+        customer: subscription.customer as string,
+        line_items: [
+          {
+            price: newPriceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/settings?upgrade=success`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/settings?upgrade=canceled`,
+        subscription_data: {
+          metadata: {
+            userId: user.id,
+          },
+        },
+        metadata: {
+          userId: user.id,
+        },
+      });
+
+      console.log('Checkout session created:', checkoutSession.id);
+
+      return NextResponse.json({
+        success: true,
+        requiresCheckout: true,
+        checkoutUrl: checkoutSession.url,
+      });
     } else {
       // DOWNGRADE: Change takes effect at end of billing period
       // Stripe updates the subscription immediately but user keeps current access until period ends

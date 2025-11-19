@@ -88,6 +88,17 @@ export default function SettingsPage() {
   useEffect(() => {
     let subscription: any;
 
+    // Check for upgrade success/cancel in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('upgrade') === 'success') {
+      setMessage('✅ Upgrade successful! Your new plan is now active.');
+      // Remove the URL parameter
+      window.history.replaceState({}, '', '/settings');
+    } else if (urlParams.get('upgrade') === 'canceled') {
+      setMessage('❌ Upgrade canceled. You can try again anytime.');
+      window.history.replaceState({}, '', '/settings');
+    }
+
     const init = async () => {
       // Get user and prices in parallel
       const [authResult] = await Promise.all([
@@ -393,6 +404,13 @@ export default function SettingsPage() {
           const data = await response.json();
 
           if (response.ok) {
+            // If upgrade requires checkout, redirect to Stripe
+            if (data.requiresCheckout && data.checkoutUrl) {
+              console.log('Redirecting to Stripe checkout:', data.checkoutUrl);
+              window.location.href = data.checkoutUrl;
+              return; // Don't show message or stop loading - we're redirecting
+            }
+
             if (isDowngrade) {
               const periodEnd = userData?.subscription_current_period_end
                 ? new Date(userData.subscription_current_period_end).toLocaleDateString()
