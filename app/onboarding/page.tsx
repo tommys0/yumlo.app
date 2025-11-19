@@ -58,7 +58,9 @@ export default function OnboardingPage() {
     checkAuth();
   }, [router]);
 
-  const handleDietaryToggle = (option: string) => {
+  const handleDietaryToggle = (e: React.MouseEvent, option: string) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event bubbling
     setFormData(prev => ({
       ...prev,
       dietary_restrictions: prev.dietary_restrictions.includes(option)
@@ -67,7 +69,9 @@ export default function OnboardingPage() {
     }));
   };
 
-  const handleCuisineToggle = (option: string) => {
+  const handleCuisineToggle = (e: React.MouseEvent, option: string) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event bubbling
     setFormData(prev => ({
       ...prev,
       cuisine_preferences: prev.cuisine_preferences.includes(option)
@@ -206,7 +210,7 @@ export default function OnboardingPage() {
                   <button
                     key={option}
                     type="button"
-                    onClick={() => handleDietaryToggle(option)}
+                    onClick={(e) => handleDietaryToggle(e, option)}
                     style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -332,7 +336,7 @@ export default function OnboardingPage() {
                   <button
                     key={option}
                     type="button"
-                    onClick={() => handleCuisineToggle(option)}
+                    onClick={(e) => handleCuisineToggle(e, option)}
                     style={{
                       padding: '12px',
                       fontSize: '14px',
