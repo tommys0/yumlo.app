@@ -51,14 +51,30 @@ export async function POST(req: NextRequest) {
       userData.stripe_subscription_id
     );
 
-    // Revert the subscription back to the original plan (current active plan in DB)
+    // Get the original plan from Stripe metadata (this is what we're reverting to)
+    const originalPlan = subscription.metadata?.downgrade_from;
+
+    if (!originalPlan) {
+      console.error('No downgrade_from metadata found in subscription');
+      return NextResponse.json(
+        { error: 'Cannot determine original plan to revert to' },
+        { status: 400 }
+      );
+    }
+
+    console.log('Reverting to original plan:', {
+      from: subscription.items.data[0].price.id,
+      to: originalPlan,
+    });
+
+    // Revert the subscription back to the original plan (stored in metadata)
     const revertedSubscription = await stripe.subscriptions.update(
       userData.stripe_subscription_id,
       {
         items: [
           {
             id: subscription.items.data[0].id,
-            price: userData.subscription_plan, // Revert to current plan
+            price: originalPlan, // Revert to the plan stored in downgrade_from metadata
           },
         ],
         proration_behavior: 'none',
@@ -66,8 +82,8 @@ export async function POST(req: NextRequest) {
         metadata: {
           ...subscription.metadata,
           // Remove downgrade metadata
-          downgrade_from: null,
-          downgrade_effective_date: null,
+          downgrade_from: '',
+          downgrade_effective_date: '',
         },
       }
     );
