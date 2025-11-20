@@ -142,6 +142,56 @@ export async function POST(req: NextRequest) {
           console.log('   Updated data:', updateResult);
         }
 
+        // Track referral if this is a new subscription (created event only)
+        if (event.type === 'customer.subscription.created') {
+          console.log('🔍 Checking for referral relationship...');
+          const { data: userData } = await supabaseAdmin
+            .from('users')
+            .select('invited_by')
+            .eq('id', userId)
+            .single();
+
+          if (userData?.invited_by) {
+            console.log('👥 User was referred by:', userData.invited_by);
+
+            // Increment referrer's referrals_count
+            const { error: referralError } = await supabaseAdmin.rpc(
+              'increment_referrals_count',
+              { user_id: userData.invited_by }
+            );
+
+            if (referralError) {
+              // If the RPC doesn't exist, try direct update
+              console.warn('⚠️ RPC not found, using direct update');
+              const { data: referrer } = await supabaseAdmin
+                .from('users')
+                .select('referrals_count, referral_code')
+                .eq('id', userData.invited_by)
+                .single();
+
+              if (referrer) {
+                const { error: updateError } = await supabaseAdmin
+                  .from('users')
+                  .update({ referrals_count: (referrer.referrals_count || 0) + 1 })
+                  .eq('id', userData.invited_by);
+
+                if (updateError) {
+                  console.error('❌ Failed to increment referrals_count:', updateError);
+                } else {
+                  console.log('✅ Referral tracked! Referrer:', userData.invited_by);
+                  console.log('   Referrer code:', referrer.referral_code);
+                  console.log('   New referral count:', (referrer.referrals_count || 0) + 1);
+                  console.log('   🎉 User', userId, 'subscribed via referral!');
+                }
+              }
+            } else {
+              console.log('✅ Referral count incremented successfully');
+            }
+          } else {
+            console.log('ℹ️ No referral relationship found');
+          }
+        }
+
         break;
       }
 

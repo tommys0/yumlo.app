@@ -5,7 +5,7 @@ import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email } = await req.json();
+    const { name, email, referralCode } = await req.json();
 
     // Validate name
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -46,13 +46,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Look up referrer if referral code provided
+    let invitedBy = null;
+    if (referralCode) {
+      const { data: referrer } = await supabaseAdmin
+        .from('waitlist')
+        .select('id')
+        .eq('referral_code', referralCode.toUpperCase())
+        .single();
+
+      if (referrer) {
+        invitedBy = referrer.id;
+        console.log('Waitlist referral detected:', referralCode, 'Referrer ID:', invitedBy);
+      } else {
+        console.warn('Invalid referral code provided:', referralCode);
+      }
+    }
+
     // Add to waitlist
-    const { error } = await supabaseAdmin
+    const { data: newEntry, error } = await supabaseAdmin
       .from('waitlist')
       .insert({
         name: name.trim(),
         email: email.toLowerCase(),
-      });
+        invited_by: invitedBy,
+      })
+      .select('id, referral_code')
+      .single();
 
     if (error) {
       console.error('Error adding to waitlist:', error);
@@ -60,6 +80,24 @@ export async function POST(req: NextRequest) {
         { error: 'Failed to join waitlist' },
         { status: 500 }
       );
+    }
+
+    // Increment referrer's count if applicable
+    if (invitedBy) {
+      const { data: referrer } = await supabaseAdmin
+        .from('waitlist')
+        .select('referrals_count')
+        .eq('id', invitedBy)
+        .single();
+
+      if (referrer) {
+        await supabaseAdmin
+          .from('waitlist')
+          .update({ referrals_count: (referrer.referrals_count || 0) + 1 })
+          .eq('id', invitedBy);
+
+        console.log('Waitlist referral count incremented for:', invitedBy);
+      }
     }
 
     // Get position in line
@@ -94,6 +132,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Successfully joined the waitlist!',
       position,
+      referralCode: newEntry?.referral_code,
     });
   } catch (error: any) {
     console.error('Error in waitlist API:', error);

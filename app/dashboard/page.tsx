@@ -14,12 +14,15 @@ interface UserData {
   generation_limit: number;
   scheduled_plan_change?: string;
   scheduled_change_date?: string;
+  referral_code?: string;
+  referrals_count?: number;
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,7 +40,7 @@ export default function DashboardPage() {
       const { data } = await supabase
         .from("users")
         .select(
-          "subscription_status, subscription_plan, generation_count, generation_limit, scheduled_plan_change, scheduled_change_date, onboarding_completed",
+          "subscription_status, subscription_plan, generation_count, generation_limit, scheduled_plan_change, scheduled_change_date, onboarding_completed, referral_code, referrals_count",
         )
         .eq("id", user.id)
         .single();
@@ -75,6 +78,8 @@ export default function DashboardPage() {
               generation_limit: newData.generation_limit,
               scheduled_plan_change: newData.scheduled_plan_change,
               scheduled_change_date: newData.scheduled_change_date,
+              referral_code: newData.referral_code,
+              referrals_count: newData.referrals_count,
             });
           }
         )
@@ -95,6 +100,21 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const copyReferralLink = async () => {
+    if (!userData?.referral_code) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    const referralLink = `${baseUrl}/register?ref=${userData.referral_code}`;
+
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   const getPlanName = () => {
@@ -341,6 +361,78 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Referral Section */}
+        {userData?.referral_code && (
+          <div
+            style={{
+              background: "#111",
+              border: "1px solid #333",
+              borderRadius: "12px",
+              padding: "24px",
+              marginBottom: "24px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <h3 style={{ fontSize: "18px", color: "#fff" }}>
+                Invite Friends
+              </h3>
+              <p style={{ color: "#888", fontSize: "14px" }}>
+                {userData.referrals_count || 0} referrals
+              </p>
+            </div>
+            <p style={{ color: "#888", fontSize: "14px", marginBottom: "16px" }}>
+              Share your referral link and get rewarded when your friends subscribe!
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="text"
+                readOnly
+                value={`${process.env.NEXT_PUBLIC_BASE_URL || typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${userData.referral_code}`}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  fontSize: "14px",
+                  background: "#1a1a1a",
+                  color: "#fff",
+                  border: "1px solid #333",
+                  borderRadius: "8px",
+                  fontFamily: "monospace",
+                }}
+              />
+              <button
+                onClick={copyReferralLink}
+                style={{
+                  padding: "12px 24px",
+                  fontSize: "14px",
+                  fontWeight: "bold",
+                  background: copied ? "#44ff44" : "#fff",
+                  color: copied ? "#000" : "#000",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "background 0.2s",
+                }}
+              >
+                {copied ? "✓ Copied!" : "Copy Link"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <div

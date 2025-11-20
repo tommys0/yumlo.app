@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 const dietaryOptions = [
@@ -32,8 +32,10 @@ const cuisineOptions = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     dietary_restrictions: [] as string[],
@@ -49,17 +51,25 @@ export default function OnboardingPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Check if user is authenticated
+    // Check if user is authenticated and capture referral code
     const checkAuth = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
         router.push("/login");
+        return;
+      }
+
+      // Capture referral code from URL (for OAuth flow)
+      const ref = searchParams.get('ref');
+      if (ref) {
+        setReferralCode(ref);
+        console.log('Referral code detected in onboarding:', ref);
       }
     };
     checkAuth();
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleDietaryToggle = (e: React.MouseEvent, option: string) => {
     e.preventDefault(); // Prevent form submission
@@ -216,6 +226,49 @@ export default function OnboardingPage() {
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to save preferences");
+      }
+
+      // If there's a referral code, save the referral relationship
+      if (referralCode) {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+
+          if (user) {
+            // Look up the referrer by their referral code
+            const { data: referrer, error: referrerError } = await supabase
+              .from('users')
+              .select('id')
+              .eq('referral_code', referralCode.toUpperCase())
+              .single();
+
+            if (referrerError) {
+              console.error('Error looking up referrer:', referrerError);
+            } else if (referrer) {
+              // Update the new user's invited_by field
+              const { error: updateError } = await supabase
+                .from('users')
+                .update({ invited_by: referrer.id })
+                .eq('id', user.id);
+
+              if (updateError) {
+                console.error('Error saving referral relationship:', updateError);
+              } else {
+                console.log('Referral relationship saved (OAuth flow):', {
+                  newUserId: user.id,
+                  referrerId: referrer.id,
+                  referralCode: referralCode,
+                });
+              }
+            } else {
+              console.warn('Referral code not found:', referralCode);
+            }
+          }
+        } catch (refError) {
+          console.error('Error processing referral:', refError);
+          // Don't fail onboarding if referral processing fails
+        }
       }
 
       // Redirect to dashboard

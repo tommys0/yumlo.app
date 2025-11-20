@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -11,7 +11,18 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Capture referral code from URL
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+      console.log('Referral code detected:', ref);
+    }
+  }, [searchParams]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +51,44 @@ export default function RegisterPage() {
       if (error) throw error;
 
       console.log('Registration successful:', data);
+
+      // If there's a referral code, save the referral relationship
+      if (referralCode && data.user) {
+        try {
+          // Look up the referrer by their referral code
+          const { data: referrer, error: referrerError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('referral_code', referralCode.toUpperCase())
+            .single();
+
+          if (referrerError) {
+            console.error('Error looking up referrer:', referrerError);
+          } else if (referrer) {
+            // Update the new user's invited_by field
+            const { error: updateError } = await supabase
+              .from('users')
+              .update({ invited_by: referrer.id })
+              .eq('id', data.user.id);
+
+            if (updateError) {
+              console.error('Error saving referral relationship:', updateError);
+            } else {
+              console.log('Referral relationship saved:', {
+                newUserId: data.user.id,
+                referrerId: referrer.id,
+                referralCode: referralCode,
+              });
+            }
+          } else {
+            console.warn('Referral code not found:', referralCode);
+          }
+        } catch (refError) {
+          console.error('Error processing referral:', refError);
+          // Don't fail registration if referral processing fails
+        }
+      }
+
       setSuccess(true);
 
       setTimeout(() => {
@@ -55,10 +104,15 @@ export default function RegisterPage() {
   const handleGoogleSignup = async () => {
     setError('');
     try {
+      // If there's a referral code, pass it through the OAuth flow
+      const redirectUrl = referralCode
+        ? `${window.location.origin}/onboarding?ref=${referralCode}`
+        : `${window.location.origin}/onboarding`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: redirectUrl,
         },
       });
 

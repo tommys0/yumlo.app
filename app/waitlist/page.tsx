@@ -1,15 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function WaitlistPage() {
+  const searchParams = useSearchParams();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [myReferralCode, setMyReferralCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Capture referral code from URL
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setReferralCode(ref);
+      console.log('Waitlist referral code detected:', ref);
+    }
+  }, [searchParams]);
+
+  const copyReferralLink = async () => {
+    if (!myReferralCode) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    const referralLink = `${baseUrl}/waitlist?ref=${myReferralCode}`;
+
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +51,7 @@ export default function WaitlistPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, referralCode }),
       });
 
       const data = await response.json();
@@ -31,6 +60,7 @@ export default function WaitlistPage() {
         setSuccess(true);
         setPosition(data.position);
         setMessage(data.message);
+        setMyReferralCode(data.referralCode);
         setName('');
         setEmail('');
       } else {
@@ -112,10 +142,83 @@ export default function WaitlistPage() {
               style={{
                 fontSize: '14px',
                 color: '#888',
+                marginBottom: '32px',
               }}
             >
               We'll email you when we launch. 🚀
             </p>
+
+            {/* Referral Section */}
+            {myReferralCode && (
+              <div
+                style={{
+                  background: '#111',
+                  border: '1px solid #333',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  textAlign: 'left',
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: '18px',
+                    color: '#fff',
+                    marginBottom: '12px',
+                  }}
+                >
+                  Invite Friends
+                </h3>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: '#888',
+                    marginBottom: '16px',
+                  }}
+                >
+                  Share your referral link and move up the waitlist!
+                </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'center',
+                  }}
+                >
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${process.env.NEXT_PUBLIC_BASE_URL || typeof window !== 'undefined' ? window.location.origin : ''}/waitlist?ref=${myReferralCode}`}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      fontSize: '14px',
+                      background: '#1a1a1a',
+                      color: '#fff',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                      fontFamily: 'monospace',
+                    }}
+                  />
+                  <button
+                    onClick={copyReferralLink}
+                    style={{
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      background: copied ? '#44ff44' : '#fff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    {copied ? '✓ Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           // Form state
