@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       const emailTemplate = waitlistConfirmationEmail(name.trim(), position);
 
       await resend.emails.send({
-        from: 'Yumlo <no-reply@yumlo.app>',
+        from: 'Yumlo <no-reply@mail.yumlo.app>',
         to: email.toLowerCase(),
         subject: emailTemplate.subject,
         html: emailTemplate.html,
