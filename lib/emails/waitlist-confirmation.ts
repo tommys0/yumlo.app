@@ -60,7 +60,6 @@ export const waitlistConfirmationEmail = (name: string, position: number) => {
         </head>
         <body>
           <div class="container">
-            <div class="emoji">✅</div>
             <h1>Welcome to the Yumlo Waitlist!</h1>
             <p>Hi <span class="highlight">${name}</span>,</p>
             <p>

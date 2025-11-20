@@ -246,20 +246,44 @@ function OnboardingForm() {
             if (referrerError) {
               console.error('Error looking up referrer:', referrerError);
             } else if (referrer) {
-              // Update the new user's invited_by field
-              const { error: updateError } = await supabase
-                .from('users')
-                .update({ invited_by: referrer.id })
-                .eq('id', user.id);
+              // Wait for the user row to be created by the trigger (with retries)
+              let userExists = false;
+              let attempts = 0;
+              const maxAttempts = 10;
 
-              if (updateError) {
-                console.error('Error saving referral relationship:', updateError);
+              while (!userExists && attempts < maxAttempts) {
+                const { data: userCheck } = await supabase
+                  .from('users')
+                  .select('id')
+                  .eq('id', user.id)
+                  .single();
+
+                if (userCheck) {
+                  userExists = true;
+                } else {
+                  await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+                  attempts++;
+                }
+              }
+
+              if (userExists) {
+                // Update the new user's invited_by field
+                const { error: updateError } = await supabase
+                  .from('users')
+                  .update({ invited_by: referrer.id })
+                  .eq('id', user.id);
+
+                if (updateError) {
+                  console.error('Error saving referral relationship:', updateError);
+                } else {
+                  console.log('Referral relationship saved (OAuth flow):', {
+                    newUserId: user.id,
+                    referrerId: referrer.id,
+                    referralCode: referralCode,
+                  });
+                }
               } else {
-                console.log('Referral relationship saved (OAuth flow):', {
-                  newUserId: user.id,
-                  referrerId: referrer.id,
-                  referralCode: referralCode,
-                });
+                console.error('User row was not created in time');
               }
             } else {
               console.warn('Referral code not found:', referralCode);
