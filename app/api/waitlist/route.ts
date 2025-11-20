@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { resend } from '@/lib/resend';
+import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const { name, email } = await req.json();
+
+    // Validate name
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Name is required' },
+        { status: 400 }
+      );
+    }
 
     // Validate email
     if (!email || typeof email !== 'string') {
@@ -40,6 +50,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabaseAdmin
       .from('waitlist')
       .insert({
+        name: name.trim(),
         email: email.toLowerCase(),
       });
 
@@ -56,12 +67,33 @@ export async function POST(req: NextRequest) {
       .from('waitlist')
       .select('*', { count: 'exact', head: true });
 
-    console.log('Added to waitlist:', email, 'Position:', count);
+    const position = count || 0;
+
+    console.log('Added to waitlist:', email, 'Position:', position);
+
+    // Send confirmation email
+    try {
+      const emailTemplate = waitlistConfirmationEmail(name.trim(), position);
+
+      await resend.emails.send({
+        from: 'Yumlo <no-reply@yumlo.app>',
+        to: email.toLowerCase(),
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
+      });
+
+      console.log('Confirmation email sent to:', email);
+    } catch (emailError) {
+      // Log but don't fail the request if email fails
+      console.error('Failed to send confirmation email:', emailError);
+      // User is still added to waitlist, just no email sent
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Successfully joined the waitlist!',
-      position: count || 0,
+      position,
     });
   } catch (error: any) {
     console.error('Error in waitlist API:', error);

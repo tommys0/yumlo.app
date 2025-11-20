@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function WaitlistPage() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -21,7 +22,7 @@ export default function WaitlistPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ name, email }),
       });
 
       const data = await response.json();
@@ -30,6 +31,7 @@ export default function WaitlistPage() {
         setSuccess(true);
         setPosition(data.position);
         setMessage(data.message);
+        setName('');
         setEmail('');
       } else {
         setMessage(data.error || 'Failed to join waitlist');
@@ -130,6 +132,25 @@ export default function WaitlistPage() {
             </p>
 
             <form onSubmit={handleSubmit}>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
+                required
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  fontSize: '16px',
+                  background: '#111',
+                  color: '#fff',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                  marginBottom: '12px',
+                  outline: 'none',
+                }}
+              />
+
               <input
                 type="email"
                 value={email}
