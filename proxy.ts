@@ -34,10 +34,12 @@ export async function proxy(request: NextRequest) {
   // Refresh session
   await supabase.auth.getUser();
 
-  // Allow access to /add-device and webhook routes
+  // Allow access to /add-device, webhook routes, and waitlist
   if (
     request.nextUrl.pathname.startsWith("/add-device") ||
-    request.nextUrl.pathname.startsWith("/api/stripe/webhook")
+    request.nextUrl.pathname.startsWith("/api/stripe/webhook") ||
+    request.nextUrl.pathname.startsWith("/waitlist") ||
+    request.nextUrl.pathname.startsWith("/api/waitlist")
   ) {
     return supabaseResponse;
   }
