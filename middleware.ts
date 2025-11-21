@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from '@supabase/ssr';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Create Supabase client and refresh session
   let supabaseResponse = NextResponse.next({
     request,
@@ -108,7 +108,16 @@ export async function proxy(request: NextRequest) {
   );
 }
 
-// Apply middleware to all routes
+// Apply middleware to all routes except static assets
 export const config = {
-  matcher: "/(.*)",
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2)$).*)',
+  ],
 };

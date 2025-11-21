@@ -39,13 +39,14 @@ npm run lint
 
 The application uses a custom device-level authorization system in addition to user authentication:
 
-- **proxy.ts**: Contains the `proxy()` function that implements device-level access control
+- **middleware.ts**: Contains the `middleware()` function that implements device-level access control
 - Reads `ALLOWED_DEVICES` from environment variable (comma-separated tokens)
 - Checks for `device_auth` cookie in requests
 - Displays custom 403 page for unauthorized devices
+- Excludes static assets (`_next/static`, `_next/image`, fonts, images) from authorization checks
 - **app/add-device/route.ts**: Route handler for authorizing new devices via `/add-device?token=YOUR_TOKEN`
 
-**Important**: This device authorization runs as middleware-style logic and protects all routes except `/add-device`.
+**Important**: This device authorization runs as Next.js middleware and protects all routes except `/add-device`, `/waitlist`, API routes, and static assets.
 
 ### Authentication Flow
 
