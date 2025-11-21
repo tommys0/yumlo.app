@@ -51,7 +51,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h1>Login</h1>
+      <h1>Přihlášení</h1>
 
       {/* Google Sign-In */}
       <button
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
           <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
         </svg>
-        Continue with Google
+        Pokračovat s Google
       </button>
 
       <div style={{
@@ -89,7 +89,7 @@ export default function LoginPage() {
         color: '#888',
       }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#ccc' }}></div>
-        <span style={{ padding: '0 10px', fontSize: '14px' }}>OR</span>
+        <span style={{ padding: '0 10px', fontSize: '14px' }}>NEBO</span>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#ccc' }}></div>
       </div>
 
@@ -115,7 +115,7 @@ export default function LoginPage() {
 
         <div style={{ marginBottom: '15px' }}>
           <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
-            Password
+            Heslo
           </label>
           <input
             id="password"
@@ -149,12 +149,12 @@ export default function LoginPage() {
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
         >
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? 'Přihlašování...' : 'Přihlásit se'}
         </button>
       </form>
 
       <p style={{ marginTop: '20px', textAlign: 'center' }}>
-        Don't have an account? <a href="/register">Register</a>
+        Nemáte účet? <a href="/register">Zaregistrovat se</a>
       </p>
     </div>
   );

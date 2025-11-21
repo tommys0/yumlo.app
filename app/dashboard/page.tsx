@@ -237,7 +237,7 @@ export default function DashboardPage() {
                 borderRadius: "8px",
               }}
             >
-              Settings
+              Nastavení
             </Link>
             <button
               onClick={handleLogout}
@@ -251,7 +251,7 @@ export default function DashboardPage() {
                 cursor: "pointer",
               }}
             >
-              Logout
+              Odhlásit se
             </button>
           </div>
         </div>
@@ -267,10 +267,10 @@ export default function DashboardPage() {
           }}
         >
           <h2 style={{ fontSize: "24px", marginBottom: "8px", color: "#fff" }}>
-            Welcome back, {user?.email}!
+            Vítejte zpět, {user?.email}!
           </h2>
           <p style={{ color: "#888" }}>
-            Current Plan:{" "}
+            Aktuální plán:{" "}
             <span style={{ color: "#fff", fontWeight: "bold" }}>
               {getPlanName()}
             </span>
@@ -296,10 +296,10 @@ export default function DashboardPage() {
             }}
           >
             <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
-              Generations Remaining
+              Zbývající generování
             </p>
             <p style={{ fontSize: "32px", fontWeight: "bold", color: "#fff" }}>
-              {generationsRemaining()}
+              {generationsRemaining() === "Unlimited" ? "Neomezené" : generationsRemaining()}
             </p>
             {!isSubscribed(userData) && generationsRemaining() === 0 && (
               <Link
@@ -316,7 +316,7 @@ export default function DashboardPage() {
                   fontWeight: "bold",
                 }}
               >
-                Upgrade Now
+                Upgradovat nyní
               </Link>
             )}
           </div>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
             }}
           >
             <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
-              Subscription Status
+              Stav předplatného
             </p>
             <p
               style={{
@@ -340,7 +340,7 @@ export default function DashboardPage() {
                 color: isSubscribed(userData) ? "#44ff44" : "#888",
               }}
             >
-              {isSubscribed(userData) ? "Active" : "Free Tier"}
+              {isSubscribed(userData) ? "Aktivní" : "Bezplatný tarif"}
             </p>
             {!isSubscribed(userData) && (
               <Link
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                   borderRadius: "6px",
                 }}
               >
-                View Plans
+                Zobrazit plány
               </Link>
             )}
           </div>
@@ -382,14 +382,14 @@ export default function DashboardPage() {
               }}
             >
               <h3 style={{ fontSize: "18px", color: "#fff" }}>
-                Invite Friends
+                Pozvěte přátele
               </h3>
               <p style={{ color: "#888", fontSize: "14px" }}>
-                {userData.referrals_count || 0} referrals
+                {userData.referrals_count || 0} doporučení
               </p>
             </div>
             <p style={{ color: "#888", fontSize: "14px", marginBottom: "16px" }}>
-              Share your referral link and get rewarded when your friends subscribe!
+              Sdílejte svůj odkaz a získejte odměnu, když se vaši přátelé přihlásí k odběru!
             </p>
             <div
               style={{
@@ -428,7 +428,7 @@ export default function DashboardPage() {
                   transition: "background 0.2s",
                 }}
               >
-                {copied ? "✓ Copied!" : "Copy Link"}
+                {copied ? "✓ Zkopírováno!" : "Kopírovat odkaz"}
               </button>
             </div>
           </div>
@@ -445,11 +445,11 @@ export default function DashboardPage() {
           }}
         >
           <h3 style={{ fontSize: "20px", marginBottom: "16px", color: "#fff" }}>
-            AI Meal Generation
+            Generování jídel s umělou inteligencí
           </h3>
           <p style={{ color: "#888", marginBottom: "24px" }}>
-            Generate personalized meal plans based on your preferences and
-            dietary needs
+            Vytvářejte personalizované jídelníčky podle vašich preferencí a
+            stravovacích potřeb
           </p>
           <button
             disabled={!canGenerate()}
@@ -465,18 +465,18 @@ export default function DashboardPage() {
               opacity: canGenerate() ? 1 : 0.5,
             }}
           >
-            {canGenerate() ? "Generate Meal Plan" : "No Generations Remaining"}
+            {canGenerate() ? "Vytvořit jídelníček" : "Žádná zbývající generování"}
           </button>
           {!canGenerate() && (
             <p
               style={{ marginTop: "16px", color: "#ff4444", fontSize: "14px" }}
             >
-              You&apos;ve used all your free generations.{" "}
+              Vyčerpali jste všechna bezplatná generování.{" "}
               <Link
                 href="/pricing"
                 style={{ color: "#fff", textDecoration: "underline" }}
               >
-                Upgrade to continue
+                Upgradovat a pokračovat
               </Link>
             </p>
           )}

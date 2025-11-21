@@ -28,7 +28,7 @@ export default function Home() {
               fontSize: '14px',
             }}
           >
-            Pricing
+            Ceník
           </Link>
           {isLoggedIn ? (
             <Link
@@ -43,7 +43,7 @@ export default function Home() {
                 fontWeight: 'bold',
               }}
             >
-              Go to Dashboard
+              Přejít na Dashboard
             </Link>
           ) : (
             <Link
@@ -55,17 +55,17 @@ export default function Home() {
                 fontSize: '14px',
               }}
             >
-              Login
+              Přihlásit se
             </Link>
           )}
         </div>
 
         {/* Hero Section */}
         <h1 style={{ fontSize: '64px', marginBottom: '24px', color: '#fff', fontWeight: 'bold' }}>
-          Welcome to Yumlo
+          Vítejte v Yumlo
         </h1>
         <p style={{ fontSize: '24px', color: '#888', marginBottom: '48px', lineHeight: '1.5' }}>
-          AI-powered meal planning tailored to your inventory, dietary needs, and macro goals
+          Plánování jídel s umělou inteligencí přizpůsobené vaší zásobě, stravovacím potřebám a makro cílům
         </p>
 
         {/* CTA Buttons */}
@@ -82,7 +82,7 @@ export default function Home() {
               fontWeight: 'bold',
             }}
           >
-            Start Free Trial
+            Začít zdarma
           </Link>
           <Link
             href="/pricing"
@@ -95,7 +95,7 @@ export default function Home() {
               fontSize: '16px',
             }}
           >
-            View Pricing
+            Zobrazit ceník
           </Link>
         </div>
 
@@ -110,26 +110,26 @@ export default function Home() {
         >
           <div style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#fff' }}>
-              AI-Powered Recipes
+              Recepty s umělou inteligencí
             </h3>
             <p style={{ color: '#888', fontSize: '14px' }}>
-              Generate personalized meal plans based on your preferences
+              Vytvářejte personalizované jídelníčky podle vašich preferencí
             </p>
           </div>
           <div style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#fff' }}>
-              Dietary Tracking
+              Sledování stravy
             </h3>
             <p style={{ color: '#888', fontSize: '14px' }}>
-              Manage allergies, restrictions, and macro goals
+              Spravujte alergie, omezení a makro cíle
             </p>
           </div>
           <div style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#fff' }}>
-              5 Free Generations
+              5 generování zdarma
             </h3>
             <p style={{ color: '#888', fontSize: '14px' }}>
-              Try it out with no commitment required
+              Vyzkoušejte bez závazků
             </p>
           </div>
         </div>

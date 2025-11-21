@@ -148,7 +148,7 @@ function RegisterForm() {
 
   return (
     <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h1>Register</h1>
+      <h1>Registrace</h1>
 
       {/* Google Sign-Up */}
       <button
@@ -176,7 +176,7 @@ function RegisterForm() {
           <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/>
           <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
         </svg>
-        Continue with Google
+        Pokračovat s Google
       </button>
 
       <div style={{
@@ -186,7 +186,7 @@ function RegisterForm() {
         color: '#888',
       }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#ccc' }}></div>
-        <span style={{ padding: '0 10px', fontSize: '14px' }}>OR</span>
+        <span style={{ padding: '0 10px', fontSize: '14px' }}>NEBO</span>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#ccc' }}></div>
       </div>
 
@@ -212,7 +212,7 @@ function RegisterForm() {
 
         <div style={{ marginBottom: '15px' }}>
           <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
-            Password
+            Heslo
           </label>
           <input
             id="password"
@@ -231,7 +231,7 @@ function RegisterForm() {
 
         <div style={{ marginBottom: '15px' }}>
           <label htmlFor="confirmPassword" style={{ display: 'block', marginBottom: '5px' }}>
-            Confirm Password
+            Potvrdit heslo
           </label>
           <input
             id="confirmPassword"
@@ -254,7 +254,7 @@ function RegisterForm() {
 
         {success && (
           <div style={{ color: 'green', marginBottom: '15px' }}>
-            Registration successful! Taking you to onboarding...
+            Registrace úspěšná! Přesměrování na onboarding...
           </div>
         )}
 
@@ -271,12 +271,12 @@ function RegisterForm() {
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
         >
-          {loading ? 'Registering...' : 'Register'}
+          {loading ? 'Registrování...' : 'Zaregistrovat se'}
         </button>
       </form>
 
       <p style={{ marginTop: '20px', textAlign: 'center' }}>
-        Already have an account? <a href="/login">Login</a>
+        Již máte účet? <a href="/login">Přihlásit se</a>
       </p>
     </div>
   );

@@ -108,28 +108,17 @@ function WaitlistForm() {
                 marginBottom: "16px",
               }}
             >
-              You're on the list!
+              Jste na seznamu!
             </h2>
             <p
               style={{
                 fontSize: "16px",
                 color: "#888",
-                marginBottom: "8px",
+                marginBottom: "32px",
               }}
             >
               {message}
             </p>
-            {position && (
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "#666",
-                  marginBottom: "32px",
-                }}
-              >
-                You're #{position} in line
-              </p>
-            )}
             <p
               style={{
                 fontSize: "14px",
@@ -137,7 +126,7 @@ function WaitlistForm() {
                 marginBottom: "32px",
               }}
             >
-              We'll email you when we launch. 🚀
+              Pošleme vám email, až spustíme. 🚀
             </p>
 
             {/* Referral Section */}
@@ -158,7 +147,7 @@ function WaitlistForm() {
                     marginBottom: "12px",
                   }}
                 >
-                  Invite Friends
+                  Pozvěte přátele
                 </h3>
                 <p
                   style={{
@@ -167,7 +156,7 @@ function WaitlistForm() {
                     marginBottom: "16px",
                   }}
                 >
-                  Share your referral link and move up the waitlist!
+                  Sdílejte svůj odkaz a posuňte se nahoru v pořadníku!
                 </p>
                 <div
                   style={{
@@ -206,7 +195,7 @@ function WaitlistForm() {
                       transition: "background 0.2s",
                     }}
                   >
-                    {copied ? "✓ Copied!" : "Copy"}
+                    {copied ? "✓ Zkopírováno!" : "Kopírovat"}
                   </button>
                 </div>
               </div>
@@ -223,8 +212,8 @@ function WaitlistForm() {
                 lineHeight: "1.6",
               }}
             >
-              AI-powered meal planning tailored to your dietary needs,
-              preferences, and macro goals.
+              Plánování jídel s umělou inteligencí přizpůsobené vašim
+              stravovacím potřebám, preferencím a makro cílům.
             </p>
 
             <form onSubmit={handleSubmit}>
@@ -232,7 +221,7 @@ function WaitlistForm() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
+                placeholder="Zadejte své jméno"
                 required
                 style={{
                   width: "100%",
@@ -251,7 +240,7 @@ function WaitlistForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder="Zadejte svůj email"
                 required
                 style={{
                   width: "100%",
@@ -282,7 +271,7 @@ function WaitlistForm() {
                   marginBottom: "16px",
                 }}
               >
-                {loading ? "Joining..." : "Join the Waitlist"}
+                {loading ? "Přidávání..." : "Přidat se na čekací listinu"}
               </button>
 
               {message && !success && (
@@ -305,7 +294,7 @@ function WaitlistForm() {
                 marginTop: "32px",
               }}
             >
-              Already have access?{" "}
+              Už máte přístup?{" "}
               <Link
                 href="/login"
                 style={{
@@ -313,7 +302,7 @@ function WaitlistForm() {
                   textDecoration: "underline",
                 }}
               >
-                Sign in
+                Přihlásit se
               </Link>
             </p>
           </div>

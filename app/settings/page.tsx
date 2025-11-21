@@ -602,9 +602,9 @@ export default function SettingsPage() {
               display: 'inline-block',
             }}
           >
-            ← Back to dashboard
+            ← Zpět na dashboard
           </Link>
-          <h1 style={{ fontSize: '36px', marginBottom: '8px', color: '#fff' }}>Settings</h1>
+          <h1 style={{ fontSize: '36px', marginBottom: '8px', color: '#fff' }}>Nastavení</h1>
         </div>
 
         {/* Navigation Tabs */}

@@ -346,10 +346,10 @@ function OnboardingForm() {
         {/* Progress indicator */}
         <div style={{ marginBottom: "40px" }}>
           <h1 style={{ fontSize: "32px", marginBottom: "8px", color: "#fff" }}>
-            Welcome to Yumlo!
+            Vítejte v Yumlo!
           </h1>
           <p style={{ color: "#888", marginBottom: "20px" }}>
-            Let&apos;s personalize your meal planning experience
+            Přizpůsobme váš zážitek z plánování jídel
           </p>
           <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
             {[1, 2, 3, 4].map((num) => (
@@ -377,7 +377,7 @@ function OnboardingForm() {
                   color: "#fff",
                 }}
               >
-                What&apos;s your name?
+                Jak se jmenujete?
               </h2>
               <input
                 type="text"
@@ -385,7 +385,7 @@ function OnboardingForm() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="Enter your name"
+                placeholder="Zadejte své jméno"
                 style={{
                   width: "100%",
                   padding: "12px",
@@ -409,7 +409,7 @@ function OnboardingForm() {
                   color: "#fff",
                 }}
               >
-                Any dietary restrictions?
+                Máte nějaká stravovací omezení?
               </h2>
               <p
                 style={{
@@ -418,7 +418,7 @@ function OnboardingForm() {
                   fontSize: "14px",
                 }}
               >
-                Select all that apply
+                Vyberte vše, co platí
               </p>
               <div
                 style={{
@@ -463,7 +463,7 @@ function OnboardingForm() {
                   color: "#fff",
                 }}
               >
-                Allergies & Goals
+                Alergie a cíle
               </h2>
 
               <div style={{ marginBottom: "24px" }}>
@@ -475,7 +475,7 @@ function OnboardingForm() {
                     fontSize: "14px",
                   }}
                 >
-                  Food Allergies (comma-separated)
+                  Potravinové alergie (oddělené čárkami)
                 </label>
                 <input
                   type="text"
@@ -483,7 +483,7 @@ function OnboardingForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, allergies: e.target.value })
                   }
-                  placeholder="e.g., peanuts, shellfish, soy"
+                  placeholder="např. arašídy, korýši, sója"
                   style={{
                     width: "100%",
                     padding: "12px",
@@ -505,7 +505,7 @@ function OnboardingForm() {
                     fontSize: "14px",
                   }}
                 >
-                  Macro Goals (optional)
+                  Makro cíle (volitelné)
                 </label>
                 <div
                   style={{
@@ -526,7 +526,7 @@ function OnboardingForm() {
                         },
                       })
                     }
-                    placeholder="Protein (g)"
+                    placeholder="Bílkoviny (g)"
                     style={{
                       padding: "12px",
                       fontSize: "14px",
@@ -548,7 +548,7 @@ function OnboardingForm() {
                         },
                       })
                     }
-                    placeholder="Carbs (g)"
+                    placeholder="Sacharidy (g)"
                     style={{
                       padding: "12px",
                       fontSize: "14px",
@@ -570,7 +570,7 @@ function OnboardingForm() {
                         },
                       })
                     }
-                    placeholder="Fats (g)"
+                    placeholder="Tuky (g)"
                     style={{
                       padding: "12px",
                       fontSize: "14px",
@@ -592,7 +592,7 @@ function OnboardingForm() {
                         },
                       })
                     }
-                    placeholder="Calories"
+                    placeholder="Kalorie"
                     style={{
                       padding: "12px",
                       fontSize: "14px",
@@ -617,7 +617,7 @@ function OnboardingForm() {
                   color: "#fff",
                 }}
               >
-                Favorite cuisines?
+                Oblíbené kuchyně?
               </h2>
               <p
                 style={{
@@ -626,7 +626,7 @@ function OnboardingForm() {
                   fontSize: "14px",
                 }}
               >
-                Select your preferred cuisines
+                Vyberte vaše preferované kuchyně
               </p>
               <div
                 style={{
@@ -690,7 +690,7 @@ function OnboardingForm() {
                   cursor: "pointer",
                 }}
               >
-                Back
+                Zpět
               </button>
             )}
             {step < 4 ? (
@@ -709,7 +709,7 @@ function OnboardingForm() {
                   cursor: "pointer",
                 }}
               >
-                Next
+                Další
               </button>
             ) : (
               <button
@@ -727,7 +727,7 @@ function OnboardingForm() {
                   cursor: loading ? "not-allowed" : "pointer",
                 }}
               >
-                {loading ? "Saving..." : "Complete Setup"}
+                {loading ? "Ukládání..." : "Dokončit nastavení"}
               </button>
             )}
           </div>

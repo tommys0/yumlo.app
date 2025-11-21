@@ -1,6 +1,6 @@
 export const waitlistConfirmationEmail = (name: string, position: number) => {
   return {
-    subject: "You're on the Yumlo waitlist! 🎉",
+    subject: "Jste na čekací listině Yumlo! 🎉",
     html: `
       <!DOCTYPE html>
       <html>
@@ -60,25 +60,22 @@ export const waitlistConfirmationEmail = (name: string, position: number) => {
         </head>
         <body>
           <div class="container">
-            <h1>Welcome to the Yumlo Waitlist!</h1>
-            <p>Hi <span class="highlight">${name}</span>,</p>
+            <h1>Vítejte na čekací listině Yumlo!</h1>
+            <p>Ahoj <span class="highlight">${name}</span>,</p>
             <p>
-              Thanks for joining the Yumlo waitlist! We're excited to have you on board.
-            </p>
-            <div class="position">
-              You're #${position} in line
-            </div>
-            <p>
-              We're building an AI-powered meal planning app that creates personalized meal plans
-              based on your dietary needs, preferences, and macro goals.
+              Děkujeme za přidání se na čekací listinu Yumlo! Jsme rádi, že jste s námi.
             </p>
             <p>
-              We'll email you as soon as we launch. In the meantime, stay tuned for updates! 🚀
+              Vytváříme aplikaci pro plánování jídel s umělou inteligencí, která vytváří personalizované jídelníčky
+              přizpůsobené vašim stravovacím potřebám, preferencím a makro cílům.
+            </p>
+            <p>
+              Pošleme vám email, jakmile spustíme. Mezitím sledujte novinky! 🚀
             </p>
             <div class="footer">
               <p>
-                Best regards,<br>
-                <strong>The Yumlo Team</strong>
+                S pozdravem,<br>
+                <strong>Tým Yumlo</strong>
               </p>
             </div>
           </div>
@@ -86,18 +83,16 @@ export const waitlistConfirmationEmail = (name: string, position: number) => {
       </html>
     `,
     text: `
-Hi ${name},
+Ahoj ${name},
 
-Thanks for joining the Yumlo waitlist! We're excited to have you on board.
+Děkujeme za přidání se na čekací listinu Yumlo! Jsme rádi, že jste s námi.
 
-You're #${position} in line.
+Vytváříme aplikaci pro plánování jídel s umělou inteligencí, která vytváří personalizované jídelníčky přizpůsobené vašim stravovacím potřebám, preferencím a makro cílům.
 
-We're building an AI-powered meal planning app that creates personalized meal plans based on your dietary needs, preferences, and macro goals.
+Pošleme vám email, jakmile spustíme. Mezitím sledujte novinky! 🚀
 
-We'll email you as soon as we launch. In the meantime, stay tuned for updates! 🚀
-
-Best regards,
-The Yumlo Team
+S pozdravem,
+Tým Yumlo
     `,
   };
 };
