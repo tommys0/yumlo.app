@@ -1,6 +1,6 @@
 export const waitlistConfirmationEmail = (name: string, position: number) => {
   return {
-    subject: "Jste na čekací listině Yumlo! 🎉",
+    subject: "Jste na Yumlo waitlistu! 🎉",
     html: `
       <!DOCTYPE html>
       <html>
@@ -60,17 +60,17 @@ export const waitlistConfirmationEmail = (name: string, position: number) => {
         </head>
         <body>
           <div class="container">
-            <h1>Vítejte na čekací listině Yumlo!</h1>
+            <h1>Vítejte na Yumlo waitlistu!</h1>
             <p>Ahoj <span class="highlight">${name}</span>,</p>
             <p>
-              Děkujeme za přidání se na čekací listinu Yumlo! Jsme rádi, že jste s námi.
+              Děkujeme za přidání se na Yumlo waitlist! Jsme rádi, že jste s námi.
             </p>
             <p>
-              Vytváříme aplikaci pro plánování jídel s umělou inteligencí, která vytváří personalizované jídelníčky
+              Vytváříme AI-powered aplikaci pro plánování jídel, která vytváří personalizované jídelníčky
               přizpůsobené vašim stravovacím potřebám, preferencím a makro cílům.
             </p>
             <p>
-              Pošleme vám email, jakmile spustíme. Mezitím sledujte novinky! 🚀
+              Pošleme vám email, jakmile launchujeme. Mezitím sledujte novinky! 🚀
             </p>
             <div class="footer">
               <p>
@@ -85,11 +85,11 @@ export const waitlistConfirmationEmail = (name: string, position: number) => {
     text: `
 Ahoj ${name},
 
-Děkujeme za přidání se na čekací listinu Yumlo! Jsme rádi, že jste s námi.
+Děkujeme za přidání se na Yumlo waitlist! Jsme rádi, že jste s námi.
 
-Vytváříme aplikaci pro plánování jídel s umělou inteligencí, která vytváří personalizované jídelníčky přizpůsobené vašim stravovacím potřebám, preferencím a makro cílům.
+Vytváříme AI-powered aplikaci pro plánování jídel, která vytváří personalizované jídelníčky přizpůsobené vašim stravovacím potřebám, preferencím a makro cílům.
 
-Pošleme vám email, jakmile spustíme. Mezitím sledujte novinky! 🚀
+Pošleme vám email, jakmile launchujeme. Mezitím sledujte novinky! 🚀
 
 S pozdravem,
 Tým Yumlo

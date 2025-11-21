@@ -296,10 +296,10 @@ export default function DashboardPage() {
             }}
           >
             <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
-              Zbývající generování
+              Zbývající generations
             </p>
             <p style={{ fontSize: "32px", fontWeight: "bold", color: "#fff" }}>
-              {generationsRemaining() === "Unlimited" ? "Neomezené" : generationsRemaining()}
+              {generationsRemaining() === "Unlimited" ? "Unlimited" : generationsRemaining()}
             </p>
             {!isSubscribed(userData) && generationsRemaining() === 0 && (
               <Link
@@ -316,7 +316,7 @@ export default function DashboardPage() {
                   fontWeight: "bold",
                 }}
               >
-                Upgradovat nyní
+                Upgrade nyní
               </Link>
             )}
           </div>
@@ -445,10 +445,10 @@ export default function DashboardPage() {
           }}
         >
           <h3 style={{ fontSize: "20px", marginBottom: "16px", color: "#fff" }}>
-            Generování jídel s umělou inteligencí
+            AI generování jídel
           </h3>
           <p style={{ color: "#888", marginBottom: "24px" }}>
-            Vytvářejte personalizované jídelníčky podle vašich preferencí a
+            Generujte personalizované jídelníčky podle vašich preferencí a
             stravovacích potřeb
           </p>
           <button
@@ -465,18 +465,18 @@ export default function DashboardPage() {
               opacity: canGenerate() ? 1 : 0.5,
             }}
           >
-            {canGenerate() ? "Vytvořit jídelníček" : "Žádná zbývající generování"}
+            {canGenerate() ? "Generate jídelníček" : "Žádné zbývající generations"}
           </button>
           {!canGenerate() && (
             <p
               style={{ marginTop: "16px", color: "#ff4444", fontSize: "14px" }}
             >
-              Vyčerpali jste všechna bezplatná generování.{" "}
+              Vyčerpali jste všechny free generations.{" "}
               <Link
                 href="/pricing"
                 style={{ color: "#fff", textDecoration: "underline" }}
               >
-                Upgradovat a pokračovat
+                Upgrade a pokračovat
               </Link>
             </p>
           )}

@@ -108,7 +108,7 @@ function WaitlistForm() {
                 marginBottom: "16px",
               }}
             >
-              Jste na seznamu!
+              Jste na waitlistu!
             </h2>
             <p
               style={{
@@ -126,7 +126,7 @@ function WaitlistForm() {
                 marginBottom: "32px",
               }}
             >
-              Pošleme vám email, až spustíme. 🚀
+              Pošleme vám email, až launchujeme. 🚀
             </p>
 
             {/* Referral Section */}
@@ -156,7 +156,7 @@ function WaitlistForm() {
                     marginBottom: "16px",
                   }}
                 >
-                  Sdílejte svůj odkaz a posuňte se nahoru v pořadníku!
+                  Sdílejte svůj odkaz a posuňte se nahoru na waitlistu!
                 </p>
                 <div
                   style={{
@@ -212,7 +212,7 @@ function WaitlistForm() {
                 lineHeight: "1.6",
               }}
             >
-              Plánování jídel s umělou inteligencí přizpůsobené vašim
+              AI-powered plánování jídel přizpůsobené vašim
               stravovacím potřebám, preferencím a makro cílům.
             </p>
 
@@ -271,7 +271,7 @@ function WaitlistForm() {
                   marginBottom: "16px",
                 }}
               >
-                {loading ? "Přidávání..." : "Přidat se na čekací listinu"}
+                {loading ? "Přidávání..." : "Přidat se na waitlist"}
               </button>
 
               {message && !success && (

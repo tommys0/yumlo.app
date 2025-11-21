@@ -65,7 +65,7 @@ export default function Home() {
           Vítejte v Yumlo
         </h1>
         <p style={{ fontSize: '24px', color: '#888', marginBottom: '48px', lineHeight: '1.5' }}>
-          Plánování jídel s umělou inteligencí přizpůsobené vaší zásobě, stravovacím potřebám a makro cílům
+          AI-powered plánování jídel přizpůsobené vaší zásobě, stravovacím potřebám a makro cílům
         </p>
 
         {/* CTA Buttons */}
@@ -110,10 +110,10 @@ export default function Home() {
         >
           <div style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#fff' }}>
-              Recepty s umělou inteligencí
+              AI recepty
             </h3>
             <p style={{ color: '#888', fontSize: '14px' }}>
-              Vytvářejte personalizované jídelníčky podle vašich preferencí
+              Generujte personalizované jídelníčky podle vašich preferencí
             </p>
           </div>
           <div style={{ padding: '20px' }}>
@@ -126,7 +126,7 @@ export default function Home() {
           </div>
           <div style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '20px', marginBottom: '8px', color: '#fff' }}>
-              5 generování zdarma
+              5 free generations
             </h3>
             <p style={{ color: '#888', fontSize: '14px' }}>
               Vyzkoušejte bez závazků
