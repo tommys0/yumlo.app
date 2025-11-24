@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import MacroInput from "@/components/MacroInput";
 
 const dietaryOptions = [
   "None",
@@ -189,23 +190,23 @@ function OnboardingForm() {
       // Prepare macro goals (only include if provided)
       const macroGoals =
         formData.macro_goals.protein ||
-        formData.macro_goals.carbs ||
-        formData.macro_goals.fats ||
-        formData.macro_goals.calories
+          formData.macro_goals.carbs ||
+          formData.macro_goals.fats ||
+          formData.macro_goals.calories
           ? {
-              protein: formData.macro_goals.protein
-                ? parseInt(formData.macro_goals.protein)
-                : null,
-              carbs: formData.macro_goals.carbs
-                ? parseInt(formData.macro_goals.carbs)
-                : null,
-              fats: formData.macro_goals.fats
-                ? parseInt(formData.macro_goals.fats)
-                : null,
-              calories: formData.macro_goals.calories
-                ? parseInt(formData.macro_goals.calories)
-                : null,
-            }
+            protein: formData.macro_goals.protein
+              ? parseInt(formData.macro_goals.protein)
+              : null,
+            carbs: formData.macro_goals.carbs
+              ? parseInt(formData.macro_goals.carbs)
+              : null,
+            fats: formData.macro_goals.fats
+              ? parseInt(formData.macro_goals.fats)
+              : null,
+            calories: formData.macro_goals.calories
+              ? parseInt(formData.macro_goals.calories)
+              : null,
+          }
           : null;
 
       const response = await fetch("/api/user/onboarding", {
@@ -377,7 +378,7 @@ function OnboardingForm() {
                   color: "#fff",
                 }}
               >
-                Jak se jmenujete?
+                Jak vám máme říkat?
               </h2>
               <input
                 type="text"
@@ -496,114 +497,15 @@ function OnboardingForm() {
                 />
               </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    color: "#888",
-                    fontSize: "14px",
-                  }}
-                >
-                  Makro cíle (volitelné)
-                </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "12px",
-                  }}
-                >
-                  <input
-                    type="number"
-                    value={formData.macro_goals.protein}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        macro_goals: {
-                          ...formData.macro_goals,
-                          protein: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Bílkoviny (g)"
-                    style={{
-                      padding: "12px",
-                      fontSize: "14px",
-                      background: "#1a1a1a",
-                      color: "#fff",
-                      border: "1px solid #333",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={formData.macro_goals.carbs}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        macro_goals: {
-                          ...formData.macro_goals,
-                          carbs: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Sacharidy (g)"
-                    style={{
-                      padding: "12px",
-                      fontSize: "14px",
-                      background: "#1a1a1a",
-                      color: "#fff",
-                      border: "1px solid #333",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={formData.macro_goals.fats}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        macro_goals: {
-                          ...formData.macro_goals,
-                          fats: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Tuky (g)"
-                    style={{
-                      padding: "12px",
-                      fontSize: "14px",
-                      background: "#1a1a1a",
-                      color: "#fff",
-                      border: "1px solid #333",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={formData.macro_goals.calories}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        macro_goals: {
-                          ...formData.macro_goals,
-                          calories: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Kalorie"
-                    style={{
-                      padding: "12px",
-                      fontSize: "14px",
-                      background: "#1a1a1a",
-                      color: "#fff",
-                      border: "1px solid #333",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </div>
-              </div>
+              <MacroInput
+                value={formData.macro_goals}
+                onChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    macro_goals: value,
+                  })
+                }
+              />
             </div>
           )}
 

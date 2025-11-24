@@ -47,7 +47,7 @@ export default function DashboardPage() {
 
       // Check if onboarding is completed
       if (data && !data.onboarding_completed) {
-        console.log('Onboarding not completed, redirecting...');
+        console.log("Onboarding not completed, redirecting...");
         router.push("/onboarding");
         return;
       }
@@ -58,17 +58,17 @@ export default function DashboardPage() {
 
       // Set up real-time subscription to listen for DB changes
       const subscription = supabase
-        .channel('dashboard-subscription-changes')
+        .channel("dashboard-subscription-changes")
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'users',
+            event: "UPDATE",
+            schema: "public",
+            table: "users",
             filter: `id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('🔔 Dashboard: Real-time update detected:', payload);
+            console.log("🔔 Dashboard: Real-time update detected:", payload);
             // Automatically update user data when DB changes
             const newData = payload.new as any;
             setUserData({
@@ -81,16 +81,16 @@ export default function DashboardPage() {
               referral_code: newData.referral_code,
               referrals_count: newData.referrals_count,
             });
-          }
+          },
         )
         .subscribe();
 
-      console.log('✅ Dashboard: Real-time sync enabled');
+      console.log("Dashboard: Real-time sync enabled");
 
       // Cleanup on unmount
       return () => {
         subscription.unsubscribe();
-        console.log('🔕 Dashboard: Real-time sync disabled');
+        console.log("Dashboard: Real-time sync disabled");
       };
     };
 
@@ -113,7 +113,7 @@ export default function DashboardPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
@@ -157,48 +157,137 @@ export default function DashboardPage() {
   `;
 
   const skeletonStyle: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
-    backgroundSize: '1000px 100%',
-    animation: 'shimmer 2s infinite',
-    borderRadius: '6px',
+    background: "linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)",
+    backgroundSize: "1000px 100%",
+    animation: "shimmer 2s infinite",
+    borderRadius: "6px",
   };
 
   if (loading) {
     return (
       <>
         <style>{shimmerStyles}</style>
-        <div style={{ minHeight: "100vh", padding: "40px 20px", background: "#0a0a0a" }}>
+        <div
+          style={{
+            minHeight: "100vh",
+            padding: "40px 20px",
+            background: "#0a0a0a",
+          }}
+        >
           <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
             {/* Header skeleton */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
-              <div style={{ ...skeletonStyle, width: "150px", height: "36px" }} />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "40px",
+              }}
+            >
+              <div
+                style={{ ...skeletonStyle, width: "150px", height: "36px" }}
+              />
               <div style={{ display: "flex", gap: "12px" }}>
-                <div style={{ ...skeletonStyle, width: "80px", height: "40px" }} />
-                <div style={{ ...skeletonStyle, width: "80px", height: "40px" }} />
+                <div
+                  style={{ ...skeletonStyle, width: "80px", height: "40px" }}
+                />
+                <div
+                  style={{ ...skeletonStyle, width: "80px", height: "40px" }}
+                />
               </div>
             </div>
 
             {/* Welcome section skeleton */}
-            <div style={{ background: "#111", border: "1px solid #333", borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
-              <div style={{ ...skeletonStyle, width: "200px", height: "24px", marginBottom: "8px" }} />
-              <div style={{ ...skeletonStyle, width: "150px", height: "16px" }} />
+            <div
+              style={{
+                background: "#111",
+                border: "1px solid #333",
+                borderRadius: "12px",
+                padding: "24px",
+                marginBottom: "24px",
+              }}
+            >
+              <div
+                style={{
+                  ...skeletonStyle,
+                  width: "200px",
+                  height: "24px",
+                  marginBottom: "8px",
+                }}
+              />
+              <div
+                style={{ ...skeletonStyle, width: "150px", height: "16px" }}
+              />
             </div>
 
             {/* Stats grid skeleton */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "24px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                gap: "20px",
+                marginBottom: "24px",
+              }}
+            >
               {[1, 2].map((i) => (
-                <div key={i} style={{ background: "#111", border: "1px solid #333", borderRadius: "12px", padding: "24px" }}>
-                  <div style={{ ...skeletonStyle, width: "140px", height: "14px", marginBottom: "8px" }} />
-                  <div style={{ ...skeletonStyle, width: "100px", height: "32px" }} />
+                <div
+                  key={i}
+                  style={{
+                    background: "#111",
+                    border: "1px solid #333",
+                    borderRadius: "12px",
+                    padding: "24px",
+                  }}
+                >
+                  <div
+                    style={{
+                      ...skeletonStyle,
+                      width: "140px",
+                      height: "14px",
+                      marginBottom: "8px",
+                    }}
+                  />
+                  <div
+                    style={{ ...skeletonStyle, width: "100px", height: "32px" }}
+                  />
                 </div>
               ))}
             </div>
 
             {/* Main content skeleton */}
-            <div style={{ background: "#111", border: "1px solid #333", borderRadius: "12px", padding: "32px", textAlign: "center" }}>
-              <div style={{ ...skeletonStyle, width: "200px", height: "20px", margin: "0 auto 16px" }} />
-              <div style={{ ...skeletonStyle, width: "300px", height: "16px", margin: "0 auto 24px" }} />
-              <div style={{ ...skeletonStyle, width: "180px", height: "40px", margin: "0 auto" }} />
+            <div
+              style={{
+                background: "#111",
+                border: "1px solid #333",
+                borderRadius: "12px",
+                padding: "32px",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  ...skeletonStyle,
+                  width: "200px",
+                  height: "20px",
+                  margin: "0 auto 16px",
+                }}
+              />
+              <div
+                style={{
+                  ...skeletonStyle,
+                  width: "300px",
+                  height: "16px",
+                  margin: "0 auto 24px",
+                }}
+              />
+              <div
+                style={{
+                  ...skeletonStyle,
+                  width: "180px",
+                  height: "40px",
+                  margin: "0 auto",
+                }}
+              />
             </div>
           </div>
         </div>
@@ -296,10 +385,12 @@ export default function DashboardPage() {
             }}
           >
             <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
-              Zbývající generations
+              Zbývající generace
             </p>
             <p style={{ fontSize: "32px", fontWeight: "bold", color: "#fff" }}>
-              {generationsRemaining() === "Unlimited" ? "Unlimited" : generationsRemaining()}
+              {generationsRemaining() === "Unlimited"
+                ? "Unlimited"
+                : generationsRemaining()}
             </p>
             {!isSubscribed(userData) && generationsRemaining() === 0 && (
               <Link
@@ -316,7 +407,7 @@ export default function DashboardPage() {
                   fontWeight: "bold",
                 }}
               >
-                Upgrade nyní
+                Upgradovat nyní
               </Link>
             )}
           </div>
@@ -388,8 +479,11 @@ export default function DashboardPage() {
                 {userData.referrals_count || 0} doporučení
               </p>
             </div>
-            <p style={{ color: "#888", fontSize: "14px", marginBottom: "16px" }}>
-              Sdílejte svůj odkaz a získejte odměnu, když se vaši přátelé přihlásí k odběru!
+            <p
+              style={{ color: "#888", fontSize: "14px", marginBottom: "16px" }}
+            >
+              Sdílejte svůj odkaz a získejte odměnu, když se vaši přátelé
+              přihlásí k odběru!
             </p>
             <div
               style={{
@@ -401,7 +495,7 @@ export default function DashboardPage() {
               <input
                 type="text"
                 readOnly
-                value={`${process.env.NEXT_PUBLIC_BASE_URL || typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${userData.referral_code}`}
+                value={`${process.env.NEXT_PUBLIC_BASE_URL || typeof window !== "undefined" ? window.location.origin : ""}/register?ref=${userData.referral_code}`}
                 style={{
                   flex: 1,
                   padding: "12px",
@@ -465,7 +559,9 @@ export default function DashboardPage() {
               opacity: canGenerate() ? 1 : 0.5,
             }}
           >
-            {canGenerate() ? "Generate jídelníček" : "Žádné zbývající generations"}
+            {canGenerate()
+              ? "Generate jídelníček"
+              : "Žádné zbývající generations"}
           </button>
           {!canGenerate() && (
             <p

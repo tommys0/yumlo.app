@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Stripe (planned for payments)
 - Tailwind CSS 4
 
-**Timeline:** Oct 2025 - Mar 2026
+**Timeline:** Oct 2025 - Dec 2025
 
 ## Development Commands
 
