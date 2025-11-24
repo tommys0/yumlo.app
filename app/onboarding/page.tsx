@@ -169,9 +169,9 @@ function OnboardingForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // IMPORTANT: Only allow submission on step 4
-    if (step !== 4) {
-      console.log("Form submission blocked - not on step 4");
+    // IMPORTANT: Only allow submission on step 5
+    if (step !== 5) {
+      console.log("Form submission blocked - not on step 5");
       return;
     }
 
@@ -328,8 +328,8 @@ function OnboardingForm() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent Enter from submitting form on steps 1-3
-    if (e.key === "Enter" && step < 4) {
+    // Prevent Enter from submitting form on steps 1-4
+    if (e.key === "Enter" && step < 5) {
       e.preventDefault();
       console.log("Enter key blocked on step", step);
     }
@@ -353,7 +353,7 @@ function OnboardingForm() {
             Přizpůsobme váš zážitek z plánování jídel
           </p>
           <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-            {[1, 2, 3, 4].map((num) => (
+            {[1, 2, 3, 4, 5].map((num) => (
               <div
                 key={num}
                 style={{
@@ -454,7 +454,7 @@ function OnboardingForm() {
             </div>
           )}
 
-          {/* Step 3: Allergies & Macro Goals */}
+          {/* Step 3: Allergies */}
           {step === 3 && (
             <div style={{ marginBottom: "32px" }}>
               <h2
@@ -464,8 +464,17 @@ function OnboardingForm() {
                   color: "#fff",
                 }}
               >
-                Alergie a cíle
+                Potravinové alergie
               </h2>
+              <p
+                style={{
+                  color: "#888",
+                  marginBottom: "16px",
+                  fontSize: "14px",
+                }}
+              >
+                Pomozte nám vytvořit bezpečné recepty pro vás
+              </p>
 
               <div style={{ marginBottom: "24px" }}>
                 <label
@@ -476,7 +485,7 @@ function OnboardingForm() {
                     fontSize: "14px",
                   }}
                 >
-                  Potravinové alergie (oddělené čárkami)
+                  Alergie a intolerance (oddělené čárkami)
                 </label>
                 <input
                   type="text"
@@ -484,7 +493,7 @@ function OnboardingForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, allergies: e.target.value })
                   }
-                  placeholder="např. arašídy, korýši, sója"
+                  placeholder="např. arašídy, korýši, sója, laktóza"
                   style={{
                     width: "100%",
                     padding: "12px",
@@ -495,7 +504,40 @@ function OnboardingForm() {
                     borderRadius: "8px",
                   }}
                 />
+                <p
+                  style={{
+                    color: "#666",
+                    marginTop: "8px",
+                    fontSize: "12px",
+                  }}
+                >
+                  Pokud žádné nemáte, nechte pole prázdné
+                </p>
               </div>
+            </div>
+          )}
+
+          {/* Step 4: Macro Goals */}
+          {step === 4 && (
+            <div style={{ marginBottom: "32px" }}>
+              <h2
+                style={{
+                  fontSize: "24px",
+                  marginBottom: "16px",
+                  color: "#fff",
+                }}
+              >
+                Nutriční cíle
+              </h2>
+              <p
+                style={{
+                  color: "#888",
+                  marginBottom: "16px",
+                  fontSize: "14px",
+                }}
+              >
+                Nastavte si cíle pro kalorie a makroživiny
+              </p>
 
               <MacroInput
                 value={formData.macro_goals}
@@ -509,8 +551,8 @@ function OnboardingForm() {
             </div>
           )}
 
-          {/* Step 4: Cuisine Preferences */}
-          {step === 4 && (
+          {/* Step 5: Cuisine Preferences */}
+          {step === 5 && (
             <div style={{ marginBottom: "32px" }}>
               <h2
                 style={{
@@ -595,7 +637,7 @@ function OnboardingForm() {
                 Zpět
               </button>
             )}
-            {step < 4 ? (
+            {step < 5 ? (
               <button
                 type="button"
                 onClick={(e) => nextStep(e)}
