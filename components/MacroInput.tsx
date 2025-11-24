@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   calculateCaloriesFromMacros,
   validateCaloriesMacros,
@@ -16,15 +16,41 @@ export type InputMode = 'calories-first' | 'macros-first' | 'skip';
 interface MacroInputProps {
   value: MacroInputs;
   onChange: (value: MacroInputs) => void;
+  isSettingsContext?: boolean; // When true, behaves differently for settings
+  initialMode?: InputMode; // Force a specific initial mode
 }
 
-export default function MacroInput({ value, onChange }: MacroInputProps) {
+export default function MacroInput({ value, onChange, isSettingsContext = false, initialMode }: MacroInputProps) {
   const [inputMode, setInputMode] = useState<InputMode | null>(null);
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
 
   // Parse current inputs
   const { protein, carbs, fats, calories, hasAnyValue } = parseMacroInputs(value);
+
+  // Auto-detect mode for settings context
+  React.useEffect(() => {
+    if (isSettingsContext && inputMode === null && hasAnyValue) {
+      // If we have an initial mode specified, use that
+      if (initialMode) {
+        setInputMode(initialMode);
+        return;
+      }
+
+      // Auto-detect based on existing data
+      // If user has macros but no calories, or if calculated calories match input calories closely, assume macros-first
+      const calculatedCalories = calculateCaloriesFromMacros(protein, carbs, fats);
+      const caloriesDiff = Math.abs(calories - calculatedCalories);
+
+      if (calories === 0 || caloriesDiff <= 10) {
+        setInputMode('macros-first');
+      } else {
+        setInputMode('calories-first');
+      }
+    } else if (initialMode && inputMode === null) {
+      setInputMode(initialMode);
+    }
+  }, [isSettingsContext, hasAnyValue, protein, carbs, fats, calories, initialMode, inputMode]);
 
   // Calculate validation when inputs change
   useEffect(() => {
@@ -236,31 +262,33 @@ export default function MacroInput({ value, onChange }: MacroInputProps) {
             </div>
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleInputModeSelect('skip')}
-            style={{
-              padding: '12px 16px',
-              fontSize: '13px',
-              background: 'transparent',
-              color: '#888',
-              border: '1px solid #333',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              textAlign: 'center',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#555';
-              e.currentTarget.style.color = '#ccc';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#333';
-              e.currentTarget.style.color = '#888';
-            }}
-          >
-            ⏭️ Přeskočit zatím - nastavím si to později v profilu
-          </button>
+          {!isSettingsContext && (
+            <button
+              type="button"
+              onClick={() => handleInputModeSelect('skip')}
+              style={{
+                padding: '12px 16px',
+                fontSize: '13px',
+                background: 'transparent',
+                color: '#888',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#555';
+                e.currentTarget.style.color = '#ccc';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#333';
+                e.currentTarget.style.color = '#888';
+              }}
+            >
+              ⏭️ Přeskočit zatím - nastavím si to později v profilu
+            </button>
+          )}
         </div>
       </div>
     );
@@ -300,23 +328,25 @@ export default function MacroInput({ value, onChange }: MacroInputProps) {
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
-            Nutriční cíle
+            🎯 Nutriční cíle (kalorie první)
           </h3>
-          <button
-            type="button"
-            onClick={() => setInputMode(null)}
-            style={{
-              padding: '4px 8px',
-              fontSize: '11px',
-              background: '#333',
-              color: '#888',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            změnit
-          </button>
+          {isSettingsContext && (
+            <button
+              type="button"
+              onClick={() => setInputMode(null)}
+              style={{
+                padding: '4px 8px',
+                fontSize: '11px',
+                background: '#333',
+                color: '#888',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              změnit způsob
+            </button>
+          )}
         </div>
 
         {/* Calorie target input */}
@@ -454,23 +484,25 @@ export default function MacroInput({ value, onChange }: MacroInputProps) {
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
-            Nutriční cíle
+            ⚖️ Nutriční cíle (makra první)
           </h3>
-          <button
-            type="button"
-            onClick={() => setInputMode(null)}
-            style={{
-              padding: '4px 8px',
-              fontSize: '11px',
-              background: '#333',
-              color: '#888',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            změnit
-          </button>
+          {isSettingsContext && (
+            <button
+              type="button"
+              onClick={() => setInputMode(null)}
+              style={{
+                padding: '4px 8px',
+                fontSize: '11px',
+                background: '#333',
+                color: '#888',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              změnit způsob
+            </button>
+          )}
         </div>
 
         {/* Macro inputs */}

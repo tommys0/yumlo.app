@@ -939,6 +939,7 @@ export default function SettingsPage() {
                       macro_goals: value,
                     })
                   }
+                  isSettingsContext={true}
                 />
               </div>
 
