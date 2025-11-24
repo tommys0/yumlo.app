@@ -24,13 +24,14 @@ export default function MacroInput({ value, onChange, isSettingsContext = false,
   const [inputMode, setInputMode] = useState<InputMode | null>(null);
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [userRequestedModeChange, setUserRequestedModeChange] = useState(false);
 
   // Parse current inputs
   const { protein, carbs, fats, calories, hasAnyValue } = parseMacroInputs(value);
 
-  // Auto-detect mode for settings context
+  // Auto-detect mode for settings context (only on initial load, not when user requests change)
   React.useEffect(() => {
-    if (isSettingsContext && inputMode === null && hasAnyValue) {
+    if (isSettingsContext && inputMode === null && hasAnyValue && !userRequestedModeChange) {
       // If we have an initial mode specified, use that
       if (initialMode) {
         setInputMode(initialMode);
@@ -47,10 +48,10 @@ export default function MacroInput({ value, onChange, isSettingsContext = false,
       } else {
         setInputMode('calories-first');
       }
-    } else if (initialMode && inputMode === null) {
+    } else if (initialMode && inputMode === null && !userRequestedModeChange) {
       setInputMode(initialMode);
     }
-  }, [isSettingsContext, hasAnyValue, protein, carbs, fats, calories, initialMode, inputMode]);
+  }, [isSettingsContext, hasAnyValue, protein, carbs, fats, calories, initialMode, inputMode, userRequestedModeChange]);
 
   // Calculate validation when inputs change
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function MacroInput({ value, onChange, isSettingsContext = false,
   const handleInputModeSelect = (mode: InputMode) => {
     setInputMode(mode);
     setShowMismatchDialog(false);
+    setUserRequestedModeChange(false); // Reset the flag when mode is selected
 
     if (mode === 'skip') {
       onChange({ protein: '', carbs: '', fats: '', calories: '' });
@@ -333,7 +335,10 @@ export default function MacroInput({ value, onChange, isSettingsContext = false,
           {isSettingsContext && (
             <button
               type="button"
-              onClick={() => setInputMode(null)}
+              onClick={() => {
+                setUserRequestedModeChange(true);
+                setInputMode(null);
+              }}
               style={{
                 padding: '4px 8px',
                 fontSize: '11px',
@@ -489,7 +494,10 @@ export default function MacroInput({ value, onChange, isSettingsContext = false,
           {isSettingsContext && (
             <button
               type="button"
-              onClick={() => setInputMode(null)}
+              onClick={() => {
+                setUserRequestedModeChange(true);
+                setInputMode(null);
+              }}
               style={{
                 padding: '4px 8px',
                 fontSize: '11px',
