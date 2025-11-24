@@ -5,6 +5,10 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 **Tech:** Next.js, TypeScript, Supabase, Gemini API, Stripe  
 **Timeline:** Oct 2025 - Mar 2026
 
+- [ ] - not done
+- [/] - in progress
+- [x] - done
+
 ---
 
 # AI Meal Planner - Kompletní To-Do List
