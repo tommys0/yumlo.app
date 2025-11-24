@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import MacroInput from '@/components/MacroInput';
+import { calculateCaloriesFromMacros } from '@/lib/nutrition-utils';
 
 interface UserData {
   email: string;
@@ -824,10 +826,21 @@ export default function SettingsPage() {
               <div style={{ marginBottom: '16px' }}>
                 <p style={{ color: '#888', marginBottom: '8px' }}>Macro Goals</p>
                 <p style={{ fontSize: '16px', color: '#fff' }}>
-                  {userData?.macro_goals
-                    ? `Protein: ${userData.macro_goals.protein || '-'}g, Carbs: ${userData.macro_goals.carbs || '-'}g, Fats: ${userData.macro_goals.fats || '-'}g, Calories: ${userData.macro_goals.calories || '-'}`
+                  {userData?.macro_goals && (userData.macro_goals.protein || userData.macro_goals.carbs || userData.macro_goals.fats)
+                    ? (() => {
+                        const protein = userData.macro_goals.protein || 0;
+                        const carbs = userData.macro_goals.carbs || 0;
+                        const fats = userData.macro_goals.fats || 0;
+                        const calculatedCalories = calculateCaloriesFromMacros(protein, carbs, fats);
+                        return `Protein: ${protein}g, Carbs: ${carbs}g, Fats: ${fats}g, Calories: ${calculatedCalories}`;
+                      })()
                     : 'None set'}
                 </p>
+                {userData?.macro_goals && (userData.macro_goals.protein || userData.macro_goals.carbs || userData.macro_goals.fats) && (
+                  <p style={{ fontSize: '12px', color: '#666', marginTop: '4px', fontFamily: 'monospace' }}>
+                    4×({userData.macro_goals.protein || 0}+{userData.macro_goals.carbs || 0}) + 9×{userData.macro_goals.fats || 0}
+                  </p>
+                )}
               </div>
               <div style={{ marginBottom: '16px' }}>
                 <p style={{ color: '#888', marginBottom: '8px' }}>Cuisine Preferences</p>
@@ -918,84 +931,15 @@ export default function SettingsPage() {
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Macro Goals (optional)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                  <input
-                    type="number"
-                    value={preferenceData.macro_goals.protein}
-                    onChange={(e) =>
-                      setPreferenceData({
-                        ...preferenceData,
-                        macro_goals: { ...preferenceData.macro_goals, protein: e.target.value },
-                      })
-                    }
-                    placeholder="Protein (g)"
-                    style={{
-                      padding: '10px',
-                      fontSize: '14px',
-                      background: '#1a1a1a',
-                      color: '#fff',
-                      border: '1px solid #333',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={preferenceData.macro_goals.carbs}
-                    onChange={(e) =>
-                      setPreferenceData({
-                        ...preferenceData,
-                        macro_goals: { ...preferenceData.macro_goals, carbs: e.target.value },
-                      })
-                    }
-                    placeholder="Carbs (g)"
-                    style={{
-                      padding: '10px',
-                      fontSize: '14px',
-                      background: '#1a1a1a',
-                      color: '#fff',
-                      border: '1px solid #333',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={preferenceData.macro_goals.fats}
-                    onChange={(e) =>
-                      setPreferenceData({
-                        ...preferenceData,
-                        macro_goals: { ...preferenceData.macro_goals, fats: e.target.value },
-                      })
-                    }
-                    placeholder="Fats (g)"
-                    style={{
-                      padding: '10px',
-                      fontSize: '14px',
-                      background: '#1a1a1a',
-                      color: '#fff',
-                      border: '1px solid #333',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={preferenceData.macro_goals.calories}
-                    onChange={(e) =>
-                      setPreferenceData({
-                        ...preferenceData,
-                        macro_goals: { ...preferenceData.macro_goals, calories: e.target.value },
-                      })
-                    }
-                    placeholder="Calories"
-                    style={{
-                      padding: '10px',
-                      fontSize: '14px',
-                      background: '#1a1a1a',
-                      color: '#fff',
-                      border: '1px solid #333',
-                      borderRadius: '8px',
-                    }}
-                  />
-                </div>
+                <MacroInput
+                  value={preferenceData.macro_goals}
+                  onChange={(value) =>
+                    setPreferenceData({
+                      ...preferenceData,
+                      macro_goals: value,
+                    })
+                  }
+                />
               </div>
 
               <div style={{ marginBottom: '16px' }}>
