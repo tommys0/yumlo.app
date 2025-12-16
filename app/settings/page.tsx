@@ -6,6 +6,16 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import MacroInput from '@/components/MacroInput';
 import { calculateCaloriesFromMacros } from '@/lib/nutrition-utils';
+import {
+  ChevronLeftIcon,
+  CreditCardIcon,
+  UserIcon,
+  ShieldCheckIcon,
+  PencilIcon,
+  CheckIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
 
 interface UserData {
   email: string;
@@ -537,255 +547,177 @@ export default function SettingsPage() {
     return 'Free';
   };
 
-  // Skeleton shimmer animation styles
-  const shimmerStyles = `
-    @keyframes shimmer {
-      0% { background-position: -1000px 0; }
-      100% { background-position: 1000px 0; }
-    }
-  `;
-
-  const skeletonStyle: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)',
-    backgroundSize: '1000px 100%',
-    animation: 'shimmer 2s infinite',
-    borderRadius: '6px',
-  };
-
   if (loading) {
     return (
-      <>
-        <style>{shimmerStyles}</style>
-        <div style={{ minHeight: '100vh', padding: '40px 20px', background: '#0a0a0a' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
             {/* Header skeleton */}
-            <div style={{ marginBottom: '32px' }}>
-              <div style={{ ...skeletonStyle, width: '120px', height: '14px', marginBottom: '20px' }} />
-              <div style={{ ...skeletonStyle, width: '150px', height: '36px', marginBottom: '8px' }} />
+            <div className="mb-8">
+              <div className="h-4 bg-gray-200 rounded w-32 mb-4"></div>
+              <div className="h-8 bg-gray-200 rounded w-40"></div>
             </div>
 
-            {/* Tabs skeleton */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
+            {/* Navigation tabs skeleton */}
+            <div className="flex space-x-4 mb-8 border-b border-gray-200 pb-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} style={{ ...skeletonStyle, width: '100px', height: '32px' }} />
+                <div key={i} className="h-8 bg-gray-200 rounded w-24"></div>
               ))}
             </div>
 
             {/* Content skeleton */}
-            <div style={{ background: '#111', border: '1px solid #333', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
-              <div style={{ ...skeletonStyle, width: '200px', height: '24px', marginBottom: '16px' }} />
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ ...skeletonStyle, width: '100px', height: '14px', marginBottom: '8px' }} />
-                <div style={{ ...skeletonStyle, width: '250px', height: '18px' }} />
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-4 bg-gray-200 rounded w-64"></div>
+                <div className="h-10 bg-gray-200 rounded w-32 mt-6"></div>
               </div>
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ ...skeletonStyle, width: '100px', height: '14px', marginBottom: '8px' }} />
-                <div style={{ ...skeletonStyle, width: '180px', height: '18px' }} />
-              </div>
-              <div style={{ ...skeletonStyle, width: '140px', height: '40px', marginTop: '16px' }} />
             </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '40px 20px', background: '#0a0a0a' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '32px' }}>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
           <Link
             href="/dashboard"
-            style={{
-              color: '#666',
-              textDecoration: 'none',
-              fontSize: '14px',
-              marginBottom: '20px',
-              display: 'inline-block',
-            }}
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm mb-4 transition-colors"
           >
-            ← Zpět na dashboard
+            <ChevronLeftIcon className="w-4 h-4 mr-1" />
+            Zpět na dashboard
           </Link>
-          <h1 style={{ fontSize: '36px', marginBottom: '8px', color: '#fff' }}>Nastavení</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Nastavení</h1>
         </div>
 
         {/* Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid #333', paddingBottom: '12px' }}>
-          {['subscription', 'user', 'security'].map((section) => (
+        <div className="flex space-x-6 border-b border-gray-200 mb-8">
+          {[
+            { key: 'subscription', label: 'Předplatné', icon: CreditCardIcon },
+            { key: 'user', label: 'Profil', icon: UserIcon },
+            { key: 'security', label: 'Bezpečnost', icon: ShieldCheckIcon },
+          ].map((section) => (
             <button
-              key={section}
-              onClick={() => setActiveSection(section as any)}
-              style={{
-                padding: '8px 16px',
-                fontSize: '14px',
-                background: activeSection === section ? '#fff' : 'transparent',
-                color: activeSection === section ? '#000' : '#888',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: activeSection === section ? 'bold' : 'normal',
-                textTransform: 'capitalize',
-              }}
+              key={section.key}
+              onClick={() => setActiveSection(section.key as any)}
+              className={`flex items-center space-x-2 pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeSection === section.key
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
             >
-              {section}
+              <section.icon className="w-4 h-4" />
+              <span>{section.label}</span>
             </button>
           ))}
         </div>
 
         {/* Subscription Section */}
         {activeSection === 'subscription' && (
-        <div
-          style={{
-            background: '#111',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '24px',
-          }}
-        >
-          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>Subscription</h2>
-          <div style={{ marginBottom: '16px' }}>
-            <p style={{ color: '#888', marginBottom: '8px' }}>Current Plan</p>
-            <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
-              {getPlanName(userData?.subscription_plan)}
-            </p>
-            {userData?.subscription_status && userData.subscription_status !== 'canceled' && (
-              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-                Status: {userData.subscription_status}
-              </p>
-            )}
-            {userData?.subscription_current_period_end && (
-              <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
-                Renews on: {new Date(userData.subscription_current_period_end).toLocaleDateString()}
-              </p>
-            )}
-          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Předplatné</h2>
 
-          {/* Scheduled Plan Change Notice */}
-          {userData?.scheduled_plan_change && userData?.scheduled_change_date && (
-            <div
-              style={{
-                background: '#1a1a1a',
-                border: '1px solid #ff9800',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginTop: '16px',
-                marginBottom: '16px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '14px', color: '#ff9800', fontWeight: 'bold', marginBottom: '4px' }}>
-                    ⚠️ Scheduled Plan Change
+              <div className="space-y-6">
+                {/* Current Plan */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-600">Aktuální plán</p>
+                    {userData?.subscription_status === 'active' && (
+                      <span className="px-2 py-1 bg-green-100 text-green-600 text-xs rounded-full font-medium">
+                        Aktivní
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {getPlanName(userData?.subscription_plan)}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#ccc' }}>
-                    Your plan will change to <strong>{getPlanName(userData.scheduled_plan_change)}</strong> on{' '}
-                    <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong>
-                  </p>
+                  {userData?.subscription_current_period_end && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Obnovuje se: {new Date(userData.subscription_current_period_end).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
-                <button
-                  onClick={handleCancelPlanChange}
-                  disabled={portalLoading}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    background: 'transparent',
-                    color: '#ff9800',
-                    border: '1px solid #ff9800',
-                    borderRadius: '6px',
-                    cursor: portalLoading ? 'not-allowed' : 'pointer',
-                    opacity: portalLoading ? 0.7 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {portalLoading ? 'Canceling...' : 'Cancel Change'}
-                </button>
+
+                {/* Scheduled Plan Change Notice */}
+                {userData?.scheduled_plan_change && userData?.scheduled_change_date && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-3">
+                        <ExclamationTriangleIcon className="w-5 h-5 text-orange-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-orange-800">Naplánovaná změna plánu</p>
+                          <p className="text-sm text-orange-700 mt-1">
+                            Váš plán se změní na <strong>{getPlanName(userData.scheduled_plan_change)}</strong> dne{' '}
+                            <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong>
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCancelPlanChange}
+                        disabled={portalLoading}
+                        className="flex items-center px-3 py-1 text-xs font-medium text-orange-600 bg-white border border-orange-300 rounded-md hover:bg-orange-50 transition-colors disabled:opacity-50"
+                      >
+                        {portalLoading ? 'Ruším...' : 'Zrušit změnu'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
+                  {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
+                    <>
+                      {/* Upgrade button */}
+                      {prices && userData.subscription_plan !== prices.ultra.id && (
+                        <button
+                          onClick={() => {
+                            console.log('Upgrade button clicked!', { ultraId: prices.ultra.id });
+                            handleChangePlan(prices.ultra.id, 'Ultra', false);
+                          }}
+                          disabled={portalLoading}
+                          className="flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          {portalLoading ? 'Zpracovávám...' : 'Upgradovat na Ultra'}
+                        </button>
+                      )}
+
+                      {/* Downgrade button */}
+                      {prices && userData.subscription_plan === prices.ultra.id && userData.subscription_status === 'active' && (
+                        <button
+                          onClick={() => handleChangePlan(prices.basic.id, 'Basic', true)}
+                          disabled={portalLoading}
+                          className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                          {portalLoading ? 'Zpracovávám...' : 'Downgrade na Basic'}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={handleCancelSubscription}
+                        disabled={portalLoading}
+                        className="flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        {portalLoading ? 'Ruším...' : 'Zrušit předplatné'}
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/pricing"
+                      className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Upgradovat plán
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>
-            {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
-              <>
-                {/* Upgrade button - show if not on Ultra */}
-                {prices && userData.subscription_plan !== prices.ultra.id && (
-                  <button
-                    onClick={() => {
-                      console.log('Upgrade button clicked!', { ultraId: prices.ultra.id });
-                      handleChangePlan(prices.ultra.id, 'Ultra', false);
-                    }}
-                    disabled={portalLoading}
-                    style={{
-                      padding: '10px 20px',
-                      fontSize: '14px',
-                      background: '#fff',
-                      color: '#000',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      cursor: portalLoading ? 'not-allowed' : 'pointer',
-                      opacity: portalLoading ? 0.7 : 1,
-                    }}
-                  >
-                    {portalLoading ? 'Processing...' : 'Upgrade to Ultra'}
-                  </button>
-                )}
-                {/* Downgrade button - show ONLY if currently on Ultra in DB */}
-                {/* Don't show if already downgraded (plan shows as Basic but still have Ultra access) */}
-                {prices && userData.subscription_plan === prices.ultra.id && userData.subscription_status === 'active' && (
-                  <button
-                    onClick={() => handleChangePlan(prices.basic.id, 'Basic', true)}
-                    disabled={portalLoading}
-                    style={{
-                      padding: '10px 20px',
-                      fontSize: '13px',
-                      background: 'transparent',
-                      color: '#666',
-                      border: '1px solid #444',
-                      borderRadius: '8px',
-                      cursor: portalLoading ? 'not-allowed' : 'pointer',
-                      opacity: portalLoading ? 0.7 : 1,
-                    }}
-                  >
-                    {portalLoading ? 'Processing...' : 'Downgrade to Basic'}
-                  </button>
-                )}
-                <button
-                  onClick={handleCancelSubscription}
-                  disabled={portalLoading}
-                  style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    background: '#dc3545',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: portalLoading ? 'not-allowed' : 'pointer',
-                    opacity: portalLoading ? 0.7 : 1,
-                  }}
-                >
-                  {portalLoading ? 'Canceling...' : 'Cancel Subscription'}
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/pricing"
-                style={{
-                  display: 'inline-block',
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  background: '#fff',
-                  color: '#000',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Upgrade Plan
-              </Link>
-            )}
           </div>
-        </div>
         )}
 
         {/* User Preferences Section */}

@@ -2,28 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
-import { isSubscribed } from "@/lib/subscription";
+import {
+  CameraIcon,
+  CalendarDaysIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+  ChartBarIcon,
+  ClockIcon,
+} from "@heroicons/react/24/outline";
 
 interface UserData {
-  subscription_status?: string;
-  subscription_plan?: string;
-  generation_count: number;
-  generation_limit: number;
-  scheduled_plan_change?: string;
-  scheduled_change_date?: string;
-  referral_code?: string;
-  referrals_count?: number;
+  name?: string;
+  dietary_restrictions?: string[];
+  allergies?: string[];
+  macro_goals?: {
+    protein?: number;
+    carbs?: number;
+    fats?: number;
+    calories?: number;
+  };
+  cuisine_preferences?: string[];
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const getUser = async () => {
@@ -31,551 +36,200 @@ export default function DashboardPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.push("/login");
-        return;
+      if (user) {
+        setUser(user);
+
+        // Fetch user data
+        const { data } = await supabase
+          .from("users")
+          .select("name, dietary_restrictions, allergies, macro_goals, cuisine_preferences")
+          .eq("id", user.id)
+          .single();
+
+        setUserData(data);
       }
-
-      // Fetch user subscription data
-      const { data } = await supabase
-        .from("users")
-        .select(
-          "subscription_status, subscription_plan, generation_count, generation_limit, scheduled_plan_change, scheduled_change_date, onboarding_completed, referral_code, referrals_count",
-        )
-        .eq("id", user.id)
-        .single();
-
-      // Check if onboarding is completed
-      if (data && !data.onboarding_completed) {
-        console.log("Onboarding not completed, redirecting...");
-        router.push("/onboarding");
-        return;
-      }
-
-      setUser(user);
-      setUserData(data);
-      setLoading(false);
-
-      // Set up real-time subscription to listen for DB changes
-      const subscription = supabase
-        .channel("dashboard-subscription-changes")
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "users",
-            filter: `id=eq.${user.id}`,
-          },
-          (payload) => {
-            console.log("🔔 Dashboard: Real-time update detected:", payload);
-            // Automatically update user data when DB changes
-            const newData = payload.new as any;
-            setUserData({
-              subscription_status: newData.subscription_status,
-              subscription_plan: newData.subscription_plan,
-              generation_count: newData.generation_count,
-              generation_limit: newData.generation_limit,
-              scheduled_plan_change: newData.scheduled_plan_change,
-              scheduled_change_date: newData.scheduled_change_date,
-              referral_code: newData.referral_code,
-              referrals_count: newData.referrals_count,
-            });
-          },
-        )
-        .subscribe();
-
-      console.log("Dashboard: Real-time sync enabled");
-
-      // Cleanup on unmount
-      return () => {
-        subscription.unsubscribe();
-        console.log("Dashboard: Real-time sync disabled");
-      };
     };
 
     getUser();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
-
-  const copyReferralLink = async () => {
-    if (!userData?.referral_code) return;
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-    const referralLink = `${baseUrl}/register?ref=${userData.referral_code}`;
-
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
-
-  const getPlanName = () => {
-    if (
-      !userData?.subscription_status ||
-      userData.subscription_status === "canceled"
-    ) {
-      return "Free";
-    }
-    // Check against actual Stripe price IDs
-    if (userData.subscription_plan === "price_1SU4aiQzCEmOXTX6mnfngIiz") {
-      return "Basic";
-    }
-    if (userData.subscription_plan === "price_1SU4bwQzCEmOXTX6YKLtsHLH") {
-      return "Ultra";
-    }
-    return "Free";
-  };
-
-  const canGenerate = () => {
-    if (isSubscribed(userData)) return true;
-    return (
-      (userData?.generation_count || 0) < (userData?.generation_limit || 5)
-    );
-  };
-
-  const generationsRemaining = () => {
-    if (isSubscribed(userData)) return "Unlimited";
-    const remaining =
-      (userData?.generation_limit || 5) - (userData?.generation_count || 0);
-    return Math.max(0, remaining);
-  };
-
-  // Skeleton shimmer animation styles
-  const shimmerStyles = `
-    @keyframes shimmer {
-      0% { background-position: -1000px 0; }
-      100% { background-position: 1000px 0; }
-    }
-  `;
-
-  const skeletonStyle: React.CSSProperties = {
-    background: "linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)",
-    backgroundSize: "1000px 100%",
-    animation: "shimmer 2s infinite",
-    borderRadius: "6px",
-  };
-
-  if (loading) {
-    return (
-      <>
-        <style>{shimmerStyles}</style>
-        <div
-          style={{
-            minHeight: "100vh",
-            padding: "40px 20px",
-            background: "#0a0a0a",
-          }}
-        >
-          <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-            {/* Header skeleton */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "40px",
-              }}
-            >
-              <div
-                style={{ ...skeletonStyle, width: "150px", height: "36px" }}
-              />
-              <div style={{ display: "flex", gap: "12px" }}>
-                <div
-                  style={{ ...skeletonStyle, width: "80px", height: "40px" }}
-                />
-                <div
-                  style={{ ...skeletonStyle, width: "80px", height: "40px" }}
-                />
-              </div>
-            </div>
-
-            {/* Welcome section skeleton */}
-            <div
-              style={{
-                background: "#111",
-                border: "1px solid #333",
-                borderRadius: "12px",
-                padding: "24px",
-                marginBottom: "24px",
-              }}
-            >
-              <div
-                style={{
-                  ...skeletonStyle,
-                  width: "200px",
-                  height: "24px",
-                  marginBottom: "8px",
-                }}
-              />
-              <div
-                style={{ ...skeletonStyle, width: "150px", height: "16px" }}
-              />
-            </div>
-
-            {/* Stats grid skeleton */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "20px",
-                marginBottom: "24px",
-              }}
-            >
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: "#111",
-                    border: "1px solid #333",
-                    borderRadius: "12px",
-                    padding: "24px",
-                  }}
-                >
-                  <div
-                    style={{
-                      ...skeletonStyle,
-                      width: "140px",
-                      height: "14px",
-                      marginBottom: "8px",
-                    }}
-                  />
-                  <div
-                    style={{ ...skeletonStyle, width: "100px", height: "32px" }}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Main content skeleton */}
-            <div
-              style={{
-                background: "#111",
-                border: "1px solid #333",
-                borderRadius: "12px",
-                padding: "32px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  ...skeletonStyle,
-                  width: "200px",
-                  height: "20px",
-                  margin: "0 auto 16px",
-                }}
-              />
-              <div
-                style={{
-                  ...skeletonStyle,
-                  width: "300px",
-                  height: "16px",
-                  margin: "0 auto 24px",
-                }}
-              />
-              <div
-                style={{
-                  ...skeletonStyle,
-                  width: "180px",
-                  height: "40px",
-                  margin: "0 auto",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
+  }, []);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: "40px 20px",
-        background: "#0a0a0a",
-      }}
-    >
-      <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "40px",
-          }}
+    <div className="max-w-6xl mx-auto p-6">
+      {/* Welcome Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Vítejte zpět{userData?.name ? `, ${userData.name}` : ""}!
+        </h1>
+        <p className="text-gray-600">
+          Začněte s AI skenováním nebo si naplánujte nový jídelníček
+        </p>
+      </div>
+
+      {/* Quick Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* AI Scanner Card */}
+        <Link
+          href="/ai-scanner"
+          className="group block bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
         >
-          <h1 style={{ fontSize: "36px", color: "#fff" }}>Dashboard</h1>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <Link
-              href="/settings"
-              style={{
-                padding: "10px 20px",
-                fontSize: "14px",
-                background: "#333",
-                color: "#fff",
-                textDecoration: "none",
-                borderRadius: "8px",
-              }}
-            >
-              Nastavení
-            </Link>
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: "10px 20px",
-                fontSize: "14px",
-                backgroundColor: "#dc3545",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}
-            >
-              Odhlásit se
-            </button>
-          </div>
-        </div>
-
-        {/* Welcome Section */}
-        <div
-          style={{
-            background: "#111",
-            border: "1px solid #333",
-            borderRadius: "12px",
-            padding: "24px",
-            marginBottom: "24px",
-          }}
-        >
-          <h2 style={{ fontSize: "24px", marginBottom: "8px", color: "#fff" }}>
-            Vítejte zpět, {user?.email}!
-          </h2>
-          <p style={{ color: "#888" }}>
-            Aktuální plán:{" "}
-            <span style={{ color: "#fff", fontWeight: "bold" }}>
-              {getPlanName()}
-            </span>
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "20px",
-            marginBottom: "24px",
-          }}
-        >
-          {/* Generations Remaining */}
-          <div
-            style={{
-              background: "#111",
-              border: "1px solid #333",
-              borderRadius: "12px",
-              padding: "24px",
-            }}
-          >
-            <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
-              Zbývající generace
-            </p>
-            <p style={{ fontSize: "32px", fontWeight: "bold", color: "#fff" }}>
-              {generationsRemaining() === "Unlimited"
-                ? "Unlimited"
-                : generationsRemaining()}
-            </p>
-            {!isSubscribed(userData) && generationsRemaining() === 0 && (
-              <Link
-                href="/pricing"
-                style={{
-                  display: "inline-block",
-                  marginTop: "12px",
-                  padding: "8px 16px",
-                  fontSize: "12px",
-                  background: "#fff",
-                  color: "#000",
-                  textDecoration: "none",
-                  borderRadius: "6px",
-                  fontWeight: "bold",
-                }}
-              >
-                Upgradovat nyní
-              </Link>
-            )}
-          </div>
-
-          {/* Subscription Status */}
-          <div
-            style={{
-              background: "#111",
-              border: "1px solid #333",
-              borderRadius: "12px",
-              padding: "24px",
-            }}
-          >
-            <p style={{ color: "#888", fontSize: "14px", marginBottom: "8px" }}>
-              Stav předplatného
-            </p>
-            <p
-              style={{
-                fontSize: "18px",
-                fontWeight: "bold",
-                color: isSubscribed(userData) ? "#44ff44" : "#888",
-              }}
-            >
-              {isSubscribed(userData) ? "Aktivní" : "Bezplatný tarif"}
-            </p>
-            {!isSubscribed(userData) && (
-              <Link
-                href="/pricing"
-                style={{
-                  display: "inline-block",
-                  marginTop: "12px",
-                  padding: "8px 16px",
-                  fontSize: "12px",
-                  background: "#333",
-                  color: "#fff",
-                  textDecoration: "none",
-                  borderRadius: "6px",
-                }}
-              >
-                Zobrazit plány
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Referral Section */}
-        {userData?.referral_code && (
-          <div
-            style={{
-              background: "#111",
-              border: "1px solid #333",
-              borderRadius: "12px",
-              padding: "24px",
-              marginBottom: "24px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "16px",
-              }}
-            >
-              <h3 style={{ fontSize: "18px", color: "#fff" }}>
-                Pozvěte přátele
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+              <CameraIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                AI Scanner
               </h3>
-              <p style={{ color: "#888", fontSize: "14px" }}>
-                {userData.referrals_count || 0} doporučení
-              </p>
-            </div>
-            <p
-              style={{ color: "#888", fontSize: "14px", marginBottom: "16px" }}
-            >
-              Sdílejte svůj odkaz a získejte odměnu, když se vaši přátelé
-              přihlásí k odběru!
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                alignItems: "center",
-              }}
-            >
-              <input
-                type="text"
-                readOnly
-                value={`${process.env.NEXT_PUBLIC_BASE_URL || typeof window !== "undefined" ? window.location.origin : ""}/register?ref=${userData.referral_code}`}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  fontSize: "14px",
-                  background: "#1a1a1a",
-                  color: "#fff",
-                  border: "1px solid #333",
-                  borderRadius: "8px",
-                  fontFamily: "monospace",
-                }}
-              />
-              <button
-                onClick={copyReferralLink}
-                style={{
-                  padding: "12px 24px",
-                  fontSize: "14px",
-                  fontWeight: "bold",
-                  background: copied ? "#44ff44" : "#fff",
-                  color: copied ? "#000" : "#000",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  transition: "background 0.2s",
-                }}
-              >
-                {copied ? "✓ Zkopírováno!" : "Kopírovat odkaz"}
-              </button>
+              <p className="text-blue-600">Naskenovat ingredience</p>
             </div>
           </div>
-        )}
-
-        {/* Main Content */}
-        <div
-          style={{
-            background: "#111",
-            border: "1px solid #333",
-            borderRadius: "12px",
-            padding: "32px",
-            textAlign: "center",
-          }}
-        >
-          <h3 style={{ fontSize: "20px", marginBottom: "16px", color: "#fff" }}>
-            AI generování jídel
-          </h3>
-          <p style={{ color: "#888", marginBottom: "24px" }}>
-            Generujte personalizované jídelníčky podle vašich preferencí a
-            stravovacích potřeb
+          <p className="text-gray-600 mb-4">
+            Nahrajte fotky z ledničky a AI automaticky rozpozná všechny ingredience pro vás
           </p>
-          <button
-            disabled={!canGenerate()}
-            style={{
-              padding: "12px 32px",
-              fontSize: "16px",
-              fontWeight: "bold",
-              background: canGenerate() ? "#fff" : "#333",
-              color: canGenerate() ? "#000" : "#666",
-              border: "none",
-              borderRadius: "8px",
-              cursor: canGenerate() ? "pointer" : "not-allowed",
-              opacity: canGenerate() ? 1 : 0.5,
-            }}
-          >
-            {canGenerate()
-              ? "Generate jídelníček"
-              : "Žádné zbývající generations"}
-          </button>
-          {!canGenerate() && (
-            <p
-              style={{ marginTop: "16px", color: "#ff4444", fontSize: "14px" }}
-            >
-              Vyčerpali jste všechny free generations.{" "}
+          <div className="flex items-center text-blue-600 font-medium">
+            <span>Spustit skenování</span>
+            <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
+        {/* Meal Planner Card */}
+        <Link
+          href="/meal-planner"
+          className="group block bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
+        >
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+              <CalendarDaysIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+                Meal Planner
+              </h3>
+              <p className="text-green-600">Naplánovat jídelníček</p>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-4">
+            Vygenerujte personalizovaný jídelníček s automaticky vytvořeným nákupním košíkem
+          </p>
+          <div className="flex items-center text-green-600 font-medium">
+            <span>Vytvořit plán</span>
+            <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Recent Activity */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Nedávná aktivita</h2>
+
+            <div className="space-y-4">
+              <div className="text-center py-12">
+                <SparklesIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Zatím žádná aktivita</h3>
+                <p className="text-gray-500 mb-4">
+                  Začněte skenováním ingrediencí nebo vytvořením jídelníčku
+                </p>
+                <div className="space-x-3">
+                  <Link
+                    href="/ai-scanner"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <CameraIcon className="w-4 h-4 mr-2" />
+                    AI Scanner
+                  </Link>
+                  <Link
+                    href="/meal-planner"
+                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <CalendarDaysIcon className="w-4 h-4 mr-2" />
+                    Meal Planner
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Sidebar */}
+        <div className="space-y-6">
+          {/* User Preferences */}
+          {userData?.dietary_restrictions && userData.dietary_restrictions.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Vaše preference</h3>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Dietní omezení:</p>
+                <div className="flex flex-wrap gap-2">
+                  {userData.dietary_restrictions.map((restriction, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                    >
+                      {restriction}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <Link
-                href="/pricing"
-                style={{ color: "#fff", textDecoration: "underline" }}
+                href="/settings"
+                className="inline-flex items-center mt-3 text-sm text-green-600 hover:text-green-700 font-medium"
               >
-                Upgrade a pokračovat
+                Upravit preference →
               </Link>
-            </p>
+            </div>
           )}
+
+          {/* Weekly Stats */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tento týden</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <CameraIcon className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Naskenované fotky</p>
+                    <p className="text-lg font-semibold text-gray-900">0</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <CalendarDaysIcon className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Jídelníčky</p>
+                    <p className="text-lg font-semibold text-gray-900">0</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <ClockIcon className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Čas ušetřený</p>
+                    <p className="text-lg font-semibold text-gray-900">0 min</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Tips */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">💡 Tip</h3>
+            <p className="text-sm text-gray-600">
+              Pro nejlepší výsledky AI skenování fotografujte ingredience při dobrém osvětlení a v přehledném uspořádání.
+            </p>
+          </div>
         </div>
       </div>
     </div>
