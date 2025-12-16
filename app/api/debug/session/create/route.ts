@@ -94,7 +94,11 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    addLog('Response prepared', response);
+    addLog('Response prepared', {
+      sessionId: response.sessionId,
+      qrUrl: response.qrUrl,
+      hasDebugLogs: !!response.debug
+    });
 
     return NextResponse.json(response);
 
