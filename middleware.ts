@@ -34,12 +34,14 @@ export async function middleware(request: NextRequest) {
   // Refresh session
   await supabase.auth.getUser();
 
-  // Allow access to /add-device, webhook routes, and waitlist
+  // Allow access to /add-device, webhook routes, waitlist, and debug routes
   if (
     request.nextUrl.pathname.startsWith("/add-device") ||
     request.nextUrl.pathname.startsWith("/api/stripe/webhook") ||
     request.nextUrl.pathname.startsWith("/waitlist") ||
-    request.nextUrl.pathname.startsWith("/api/waitlist")
+    request.nextUrl.pathname.startsWith("/api/waitlist") ||
+    request.nextUrl.pathname.startsWith("/debug") ||
+    request.nextUrl.pathname.startsWith("/api/debug")
   ) {
     return supabaseResponse;
   }
