@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PersistentSessionManager } from '@/lib/persistent-session-manager';
+import { HybridSessionManager } from '@/lib/hybrid-session-manager';
 
 export async function POST(
   request: NextRequest,
@@ -7,7 +7,7 @@ export async function POST(
 ) {
   try {
     const { sessionId } = await params;
-    const session = await PersistentSessionManager.completeSession(sessionId);
+    const session = await HybridSessionManager.completeSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
