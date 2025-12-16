@@ -27,17 +27,66 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [x] **Protected routes middleware** (Device Auth + Auth Check)
 
 ### 🏠 Dashboard
-- [/] **Dashboard page layout**
-- [/] **Quick stats component**
+- [x] **Dashboard page layout**
+- [x] **Quick stats component**
   - [ ] Active meal plan indicator
   - [ ] Inventory items count
   - [ ] Expiring items warning (top 3)
   - [x] Generations remaining (free tier)
 - [ ] **Today's meals display** (if active plan)
-- [/] **Quick action buttons**
-  - [x] Generate Plan CTA (Button exists but no action)
+- [x] **Quick action buttons**
+  - [x] AI Scanner CTA (Photo upload workflow)
   - [ ] Manage Inventory CTA
   - [ ] View Shopping List CTA
+
+### 📸 Photo Upload Workflow (QR Scanner)
+- [x] **QR Code Generation**
+  - [x] Create temporary photo sessions in database
+  - [x] Generate QR codes for mobile access
+  - [x] Session expiration handling (10 minutes)
+  - [x] URL generation for mobile upload page
+- [x] **Mobile Photo Upload**
+  - [x] Mobile upload page (/mobile/[sessionId])
+  - [x] Camera capture functionality
+  - [x] Gallery photo selection
+  - [x] Multiple photo upload support
+  - [x] Base64 image conversion
+  - [x] Upload progress indicators
+  - [x] Session completion handling
+- [x] **Desktop Real-time Polling**
+  - [x] Automatic photo detection via polling
+  - [x] Real-time photo display
+  - [x] Session status updates
+  - [x] Error handling for expired sessions
+- [x] **Persistent Session Storage**
+  - [x] Hybrid session manager (database + fallback)
+  - [x] photo_sessions database table
+  - [x] Automatic session cleanup
+  - [x] RLS policies for security
+- [x] **AI Image Analysis (Mock)**
+  - [x] Mock ingredient detection
+  - [x] Confidence scores
+  - [x] Quantity estimation simulation
+  - [ ] Real AI integration (Google Vision/OpenAI)
+
+### 🔧 Debug & Development Tools
+- [x] **Comprehensive Debug System**
+  - [x] Debug dashboard (/debug) - Real-time workflow monitoring
+  - [x] Debug API routes (/api/debug/*) with detailed logging
+  - [x] Step-by-step operation tracking
+  - [x] Request/response cycle monitoring
+  - [x] Error detection and reporting
+  - [x] Performance metrics (timing, duration)
+- [x] **Debug Mobile Upload**
+  - [x] Debug mobile page (/debug/mobile/[sessionId])
+  - [x] Real-time log display on mobile
+  - [x] Base64 conversion monitoring
+  - [x] Upload progress tracking
+- [x] **Development Infrastructure**
+  - [x] Device authorization system bypass for debug routes
+  - [x] Environment-specific configurations
+  - [x] Production vs development URL handling
+  - [x] Automatic network IP detection for mobile testing
 
 ### 📦 Inventory Management
 - [ ] **Inventory CRUD**
@@ -202,6 +251,10 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [x] **Register page (/register)**
 - [x] **Onboarding pages (/onboarding)**
 - [x] **Dashboard (/dashboard)**
+- [x] **AI Scanner page (/ai-scanner)** - Photo upload workflow
+- [x] **Mobile upload page (/mobile/[sessionId])** - Mobile photo capture
+- [x] **Debug dashboard (/debug)** - Development debugging
+- [x] **Debug mobile page (/debug/mobile/[sessionId])** - Debug mobile workflow
 - [ ] **Inventory page (/inventory)**
 - [ ] **Generate plan page (/plans/new)**
 - [ ] **Meal plan view (/plans/[id])**
@@ -217,16 +270,28 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 ### Database Schema
 - [x] **Users table** (Supabase Auth)
 - [x] **User preferences** (in users table)
+- [x] **photo_sessions table** - Photo upload workflow
+  - [x] Session ID, user ID, expiry, status
+  - [x] Photos stored as JSONB array
+  - [x] Auto-cleanup functionality
+  - [x] RLS policies for security
 - [ ] **Inventory items table**
 - [ ] **Meal plans table**
 - [ ] **Meals table**
 - [ ] **Recipe ratings table**
 - [ ] **Shopping lists table**
-- [x] **Row Level Security (RLS) policies** (for users)
-- [x] **Database indexes for performance** (users)
+- [x] **Row Level Security (RLS) policies** (for users + photo_sessions)
+- [x] **Database indexes for performance** (users + photo_sessions)
 
 ### API Routes
 - [x] **`/api/auth/*`** (Supabase)
+- [x] **`/api/session/*`** (Photo upload workflow)
+  - [x] `/api/session/create` - Create photo session
+  - [x] `/api/session/[id]/photos` - Upload/get photos
+  - [x] `/api/session/[id]/complete` - Mark session complete
+- [x] **`/api/debug/*`** (Debug system)
+  - [x] `/api/debug/session/create` - Debug session creation
+  - [x] `/api/debug/session/[id]/photos` - Debug photo operations
 - [ ] **`/api/inventory`**
 - [ ] **`/api/generation`**
 - [ ] **`/api/plans`**
