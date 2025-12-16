@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PersistentSessionManager } from '@/lib/persistent-session-manager';
+import { HybridSessionManager } from '@/lib/hybrid-session-manager';
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function POST(
       );
     }
 
-    const success = await PersistentSessionManager.addPhoto(sessionId, photo);
+    const success = await HybridSessionManager.addPhoto(sessionId, photo);
 
     if (!success) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const session = await PersistentSessionManager.getSession(sessionId);
+    const session = await HybridSessionManager.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(

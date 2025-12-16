@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PersistentSessionManager } from '@/lib/persistent-session-manager';
+import { HybridSessionManager } from '@/lib/hybrid-session-manager';
 import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       userId = user?.id;
     }
 
-    const session = await PersistentSessionManager.createSession(userId);
+    const session = await HybridSessionManager.createSession(userId);
 
     // Get base URL from request headers
     const protocol = request.headers.get('x-forwarded-proto') || 'http';
