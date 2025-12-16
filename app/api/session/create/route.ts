@@ -16,10 +16,15 @@ export async function POST(request: NextRequest) {
 
     const session = SessionManager.createSession(userId);
 
+    // Get base URL from request headers
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const host = request.headers.get('host') || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
+
     return NextResponse.json({
       sessionId: session.id,
       expiresAt: session.expiresAt,
-      qrUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/mobile/${session.id}`
+      qrUrl: `${baseUrl}/mobile/${session.id}`
     });
 
   } catch (error) {
