@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SessionManager } from '@/lib/session-manager';
+import { PersistentSessionManager } from '@/lib/persistent-session-manager';
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function POST(
       );
     }
 
-    const success = SessionManager.addPhoto(sessionId, photo);
+    const success = await PersistentSessionManager.addPhoto(sessionId, photo);
 
     if (!success) {
       return NextResponse.json(
@@ -43,7 +43,7 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const session = SessionManager.getSession(sessionId);
+    const session = await PersistentSessionManager.getSession(sessionId);
 
     if (!session) {
       return NextResponse.json(
