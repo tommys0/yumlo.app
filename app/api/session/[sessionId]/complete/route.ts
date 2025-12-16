@@ -3,10 +3,10 @@ import { SessionManager } from '@/lib/session-manager';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const { sessionId } = params;
+    const { sessionId } = await params;
     const session = SessionManager.completeSession(sessionId);
 
     if (!session) {

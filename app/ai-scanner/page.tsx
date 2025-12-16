@@ -76,8 +76,10 @@ export default function AiScannerPage() {
     const poll = async () => {
       try {
         const response = await fetch(`/api/session/${sessionId}/photos`);
+        let data: any = null;
+
         if (response.ok) {
-          const data = await response.json();
+          data = await response.json();
 
           if (data.photos.length > 0) {
             setQrStatus('active');
