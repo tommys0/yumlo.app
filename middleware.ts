@@ -31,8 +31,26 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session
-  await supabase.auth.getUser();
+  // Refresh session and get user
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Redirect authenticated users from landing page to dashboard
+  if (user && request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Redirect authenticated users away from login/register pages
+  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Protected routes - redirect to login if not authenticated
+  const protectedRoutes = ['/dashboard', '/meal-planner', '/ai-scanner', '/settings', '/onboarding'];
+  const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+
+  if (!user && isProtectedRoute) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
   // Allow access to /add-device, webhook routes, waitlist, and debug routes
   if (
