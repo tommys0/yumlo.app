@@ -12,6 +12,7 @@ import {
   CogIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 interface MealPlanSettings {
@@ -105,12 +106,25 @@ export default function MealPlannerPage() {
   const [error, setError] = useState<string>('');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState<string>('');
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [generationStartTime, setGenerationStartTime] = useState<number | null>(null);
 
   // Load user preferences on component mount
   useEffect(() => {
     loadUserPreferences();
-    checkRecentJobs();
+    checkActiveJob();
   }, []);
+
+  // Timer effect - updates elapsed time every second while generating
+  useEffect(() => {
+    if (!isGenerating || !generationStartTime) return;
+
+    const interval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - generationStartTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isGenerating, generationStartTime]);
 
   const loadUserPreferences = async () => {
     try {
@@ -141,13 +155,101 @@ export default function MealPlannerPage() {
     }
   };
 
-  // Check for recent completed jobs on page load
+  // Check for active job from localStorage on page load
+  const checkActiveJob = async () => {
+    try {
+      const storedJobId = localStorage.getItem('mealPlanJobId');
+      const storedStartTime = localStorage.getItem('mealPlanStartTime');
+
+      if (!storedJobId) {
+        // No active job, check for recent completed jobs
+        checkRecentJobs();
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        localStorage.removeItem('mealPlanJobId');
+        localStorage.removeItem('mealPlanStartTime');
+        return;
+      }
+
+      // Check job status
+      const response = await fetch(`/api/meal-plan/status/${storedJobId}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+
+      if (!response.ok) {
+        // Job not found or error - clean up localStorage
+        localStorage.removeItem('mealPlanJobId');
+        localStorage.removeItem('mealPlanStartTime');
+        checkRecentJobs();
+        return;
+      }
+
+      const data: JobStatusResponse = await response.json();
+
+      if (data.status === 'completed' && data.result) {
+        // Job completed while away - show result
+        setGeneratedPlan(data.result);
+        setShowSettings(false);
+        localStorage.removeItem('mealPlanJobId');
+        localStorage.removeItem('mealPlanStartTime');
+        console.log('✅ Loaded completed job from background');
+        return;
+      }
+
+      if (data.status === 'failed') {
+        // Job failed - show error and clean up
+        setError(data.error || 'Generování selhalo');
+        localStorage.removeItem('mealPlanJobId');
+        localStorage.removeItem('mealPlanStartTime');
+        return;
+      }
+
+      // Job is still pending or processing - resume polling
+      if (data.status === 'pending' || data.status === 'processing') {
+        console.log('🔄 Resuming job polling:', storedJobId);
+        setCurrentJobId(storedJobId);
+        setIsGenerating(true);
+        const startTime = storedStartTime ? parseInt(storedStartTime) : Date.now();
+        setGenerationStartTime(startTime);
+        setGenerationStatus('Generování jídelníčku...');
+
+        // Resume polling
+        pollJobStatus(storedJobId, session.access_token)
+          .then(result => {
+            setGeneratedPlan(result);
+            setShowSettings(false);
+            console.log('✅ Job completed:', result.name);
+          })
+          .catch(err => {
+            setError(err.message);
+            console.error('Job failed:', err);
+          })
+          .finally(() => {
+            setIsGenerating(false);
+            setCurrentJobId(null);
+            setGenerationStatus('');
+            setElapsedTime(0);
+            setGenerationStartTime(null);
+            localStorage.removeItem('mealPlanJobId');
+            localStorage.removeItem('mealPlanStartTime');
+          });
+      }
+    } catch (err) {
+      console.log('Could not check active job:', err);
+      localStorage.removeItem('mealPlanJobId');
+      localStorage.removeItem('mealPlanStartTime');
+    }
+  };
+
+  // Check for recent completed jobs (fallback)
   const checkRecentJobs = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Query recent completed jobs (last 10 minutes)
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
       const response = await fetch(`/api/meal-plan/recent?since=${encodeURIComponent(tenMinutesAgo)}`, {
@@ -156,7 +258,6 @@ export default function MealPlannerPage() {
         }
       });
 
-      // If the endpoint doesn't exist yet, we'll just skip this feature
       if (!response.ok) {
         console.log('Recent jobs endpoint not available');
         return;
@@ -170,6 +271,37 @@ export default function MealPlannerPage() {
       }
     } catch (err) {
       console.log('Could not check recent jobs:', err);
+    }
+  };
+
+  // Cancel current job
+  const cancelJob = async () => {
+    if (!currentJobId) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(`/api/meal-plan/${currentJobId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+
+      if (response.ok) {
+        console.log('🗑️ Job cancelled');
+      }
+    } catch (err) {
+      console.error('Failed to cancel job:', err);
+    } finally {
+      // Clean up state regardless of API success
+      setIsGenerating(false);
+      setCurrentJobId(null);
+      setGenerationStatus('');
+      setElapsedTime(0);
+      setGenerationStartTime(null);
+      setError('');
+      localStorage.removeItem('mealPlanJobId');
+      localStorage.removeItem('mealPlanStartTime');
     }
   };
 
@@ -198,7 +330,7 @@ export default function MealPlannerPage() {
 
         // Update status message
         if (data.status === 'processing') {
-          setGenerationStatus(`Generování... (${Math.floor(i * POLL_INTERVAL / 1000)}s)`);
+          setGenerationStatus('Generování jídelníčku...');
         } else {
           setGenerationStatus('Čekání na zahájení...');
         }
@@ -259,7 +391,14 @@ export default function MealPlannerPage() {
       }
 
       const { jobId } = createData;
+      const startTime = Date.now();
       setCurrentJobId(jobId);
+      setGenerationStartTime(startTime);
+
+      // Store in localStorage for persistence across navigation
+      localStorage.setItem('mealPlanJobId', jobId);
+      localStorage.setItem('mealPlanStartTime', startTime.toString());
+
       console.log('✅ Job created:', jobId);
 
       // Step 2: Poll for completion (processing already started server-side)
@@ -278,6 +417,10 @@ export default function MealPlannerPage() {
       setIsGenerating(false);
       setCurrentJobId(null);
       setGenerationStatus('');
+      setElapsedTime(0);
+      setGenerationStartTime(null);
+      localStorage.removeItem('mealPlanJobId');
+      localStorage.removeItem('mealPlanStartTime');
     }
   };
 
@@ -461,6 +604,10 @@ export default function MealPlannerPage() {
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
               AI vytváří váš jídelníček...
             </h3>
+            {/* Timer display */}
+            <div className="text-3xl font-mono font-bold text-blue-600 mb-4">
+              {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
+            </div>
             {generationStatus && (
               <p className="text-lg text-blue-600 font-medium mb-4">{generationStatus}</p>
             )}
@@ -482,8 +629,18 @@ export default function MealPlannerPage() {
                 <span>Počítám nutriční hodnoty a náklady</span>
               </div>
             </div>
-            <div className="text-gray-600 bg-white/60 rounded-lg p-3 inline-block">
+            <div className="text-gray-600 bg-white/60 rounded-lg p-3 inline-block mb-6">
               Proces může trvat 1-2 minuty pro komplexní jídelníčky
+            </div>
+            {/* Cancel button */}
+            <div>
+              <button
+                onClick={cancelJob}
+                className="inline-flex items-center px-6 py-3 bg-red-100 text-red-700 font-medium rounded-xl hover:bg-red-200 transition-all duration-200 border border-red-200"
+              >
+                <XMarkIcon className="w-5 h-5 mr-2" />
+                Zrušit generování
+              </button>
             </div>
           </div>
         )}
