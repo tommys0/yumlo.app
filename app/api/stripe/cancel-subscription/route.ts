@@ -20,10 +20,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the user's subscription data
+    // Get the user's subscription data including current period end
     const { data: userData } = await supabase
       .from('users')
-      .select('stripe_subscription_id')
+      .select('stripe_subscription_id, subscription_current_period_end')
       .eq('id', user.id)
       .single();
 
@@ -44,14 +44,44 @@ export async function POST(req: NextRequest) {
 
     // Access current_period_end using bracket notation to avoid TypeScript errors
     const currentPeriodEnd = (subscription as any).current_period_end;
-    const cancelAtDate = currentPeriodEnd
-      ? new Date(currentPeriodEnd * 1000)
-      : new Date();
+
+    // WORKAROUND: If Stripe has corrupted data (null period end), use database value
+    let cancelAtDate: Date;
+    if (currentPeriodEnd) {
+      cancelAtDate = new Date(currentPeriodEnd * 1000);
+    } else if (userData.subscription_current_period_end) {
+      console.log('⚠️ Stripe subscription has corrupted period end, using database value');
+      cancelAtDate = new Date(userData.subscription_current_period_end);
+    } else {
+      console.log('⚠️ No valid period end found in Stripe or database, using current date');
+      cancelAtDate = new Date();
+    }
+
+    // Immediately update the database to reflect the cancellation status
+    // Note: subscription is still "active" until period end, but cancel_at_period_end is true
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        subscription_status: subscription.status, // Still "active" but with cancel_at_period_end
+        // DON'T update subscription_current_period_end - keep the original period end date
+        // Store the fact that it's scheduled for cancellation
+        scheduled_plan_change: 'cancel',
+        scheduled_change_date: cancelAtDate.toISOString(),
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error updating database after cancellation:', updateError);
+      // Don't fail the request - webhook will eventually sync
+    } else {
+      console.log('✅ Database updated immediately after cancellation');
+    }
 
     console.log('Subscription cancelled:', {
       subscriptionId: subscription.id,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       currentPeriodEnd: cancelAtDate,
+      databaseUpdated: !updateError,
     });
 
     return NextResponse.json({
