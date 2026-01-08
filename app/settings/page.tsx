@@ -354,28 +354,45 @@ export default function SettingsPage() {
   };
 
   const handleCancelPlanChange = async () => {
+    const isSubscriptionCancellation = userData?.scheduled_plan_change === 'cancel';
+
     setConfirmModalData({
-      title: 'Cancel Scheduled Plan Change?',
-      message: 'Your plan will remain on the current tier and you will not be downgraded.',
+      title: isSubscriptionCancellation ? 'Reactivate Subscription?' : 'Cancel Scheduled Plan Change?',
+      message: isSubscriptionCancellation
+        ? 'Your subscription will continue and you will not be cancelled at the end of the billing period.'
+        : 'Your plan will remain on the current tier and you will not be downgraded.',
       onConfirm: async () => {
         setShowConfirmModal(false);
         setPortalLoading(true);
         try {
-          const response = await fetch('/api/stripe/cancel-plan-change', {
+          const endpoint = isSubscriptionCancellation
+            ? '/api/stripe/reactivate-subscription'
+            : '/api/stripe/cancel-plan-change';
+
+          const response = await fetch(endpoint, {
             method: 'POST',
           });
 
           const data = await response.json();
 
           if (response.ok) {
-            setMessage('✅ Scheduled plan change cancelled! You will stay on your current plan.');
+            const successMessage = isSubscriptionCancellation
+              ? '✅ Subscription reactivated! Your subscription will continue.'
+              : '✅ Scheduled plan change cancelled! You will stay on your current plan.';
+            setMessage(successMessage);
             // Refresh user data
             await checkUser();
           } else {
-            setMessage(data.error || 'Failed to cancel plan change');
+            const errorMessage = isSubscriptionCancellation
+              ? 'Failed to reactivate subscription'
+              : 'Failed to cancel plan change';
+            setMessage(data.error || errorMessage);
           }
         } catch (error) {
-          setMessage('Error cancelling plan change');
+          const errorMessage = isSubscriptionCancellation
+            ? 'Error reactivating subscription'
+            : 'Error cancelling plan change';
+          setMessage(errorMessage);
           console.error(error);
         } finally {
           setPortalLoading(false);
@@ -534,6 +551,9 @@ export default function SettingsPage() {
   const getPlanName = (planId?: string) => {
     if (!planId) return 'Free';
 
+    // Handle cancellation case
+    if (planId === 'cancel') return 'Free';
+
     if (!prices) return 'Loading...';
 
     // Check against fetched Stripe price IDs
@@ -651,10 +671,16 @@ export default function SettingsPage() {
                       <div className="flex items-start space-x-3">
                         <ExclamationTriangleIcon className="w-5 h-5 text-orange-600 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-orange-800">Naplánovaná změna plánu</p>
+                          <p className="text-sm font-medium text-orange-800">
+                            {userData.scheduled_plan_change === 'cancel' ? 'Subscription Cancellation' : 'Naplánovaná změna plánu'}
+                          </p>
                           <p className="text-sm text-orange-700 mt-1">
-                            Váš plán se změní na <strong>{getPlanName(userData.scheduled_plan_change)}</strong> dne{' '}
-                            <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong>
+                            {userData.scheduled_plan_change === 'cancel' ? (
+                              <>Your subscription will be cancelled on <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong></>
+                            ) : (
+                              <>Váš plán se změní na <strong>{getPlanName(userData.scheduled_plan_change)}</strong> dne{' '}
+                              <strong>{new Date(userData.scheduled_change_date).toLocaleDateString()}</strong></>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -663,7 +689,8 @@ export default function SettingsPage() {
                         disabled={portalLoading}
                         className="flex items-center px-3 py-1 text-xs font-medium text-orange-600 bg-white border border-orange-300 rounded-md hover:bg-orange-50 transition-colors disabled:opacity-50"
                       >
-                        {portalLoading ? 'Ruším...' : 'Zrušit změnu'}
+                        {portalLoading ? 'Ruším...' :
+                          userData?.scheduled_plan_change === 'cancel' ? 'Reactivate Subscription' : 'Zrušit změnu'}
                       </button>
                     </div>
                   </div>
