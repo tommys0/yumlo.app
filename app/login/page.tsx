@@ -25,8 +25,13 @@ export default function LoginPage() {
       if (error) throw error;
 
       console.log('Login successful:', data);
-      // Small delay to ensure session cookie is fully set before redirect
-      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Ensure session is fully persisted before redirect
+      await supabase.auth.getSession();
+
+      // Use a slightly longer delay to ensure cookies are written
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');

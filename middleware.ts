@@ -62,6 +62,11 @@ export async function middleware(request: NextRequest) {
     return createRedirect('/login');
   }
 
+  // Authenticated users bypass device authorization for protected routes
+  if (user && isProtectedRoute) {
+    return supabaseResponse;
+  }
+
   // Allow access to /add-device, webhook routes, waitlist, auth callback, and debug routes
   if (
     request.nextUrl.pathname.startsWith("/add-device") ||
