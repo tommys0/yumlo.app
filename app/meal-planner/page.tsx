@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from '@/lib/supabase';
 import {
   SparklesIcon,
   CalendarDaysIcon,
   ShoppingCartIcon,
   ClockIcon,
   UsersIcon,
+  UserIcon,
   CogIcon,
   CheckCircleIcon,
-  PlusIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 interface MealPlanSettings {
@@ -17,7 +19,19 @@ interface MealPlanSettings {
   mealsPerDay: number;
   people: number;
   targetCalories: number;
-  restrictions: string[];
+}
+
+interface UserPreferences {
+  name?: string;
+  dietary_restrictions?: string[];
+  allergies?: string[];
+  macro_goals?: {
+    protein?: number;
+    carbs?: number;
+    fats?: number;
+    calories?: number;
+  };
+  cuisine_preferences?: string[];
 }
 
 interface ShoppingItem {
@@ -27,6 +41,29 @@ interface ShoppingItem {
   estimated_cost: number;
 }
 
+interface Recipe {
+  name: string;
+  description: string;
+  cookingTime: number;
+  servings: number;
+  difficulty: string;
+  cuisine: string;
+  mealType: string;
+  ingredients: { name: string; amount: string; unit: string; }[];
+  instructions: { step: number; instruction: string; timeMinutes?: number; }[];
+  nutrition: { calories: number; protein: number; carbs: number; fats: number; };
+  tips?: string[];
+  tags?: string[];
+}
+
+interface MealPlanDay {
+  day: number;
+  meals: {
+    type: string;
+    recipe: Recipe;
+  }[];
+}
+
 interface GeneratedMealPlan {
   id: string;
   name: string;
@@ -34,71 +71,214 @@ interface GeneratedMealPlan {
   mealsPerDay: number;
   people: number;
   total_cost: number;
+  daily_plans: MealPlanDay[];
   shopping_list: ShoppingItem[];
   created_at: string;
 }
 
+// Job status response type
+interface JobStatusResponse {
+  jobId: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: GeneratedMealPlan;
+  error?: string;
+  startedAt?: string;
+}
+
+// Polling configuration
+const POLL_INTERVAL = 3000; // 3 seconds
+const MAX_POLLS = 60; // 3 minutes max
+
 export default function MealPlannerPage() {
   const [settings, setSettings] = useState<MealPlanSettings>({
-    days: 7,
+    days: 2,
     mealsPerDay: 3,
     people: 2,
     targetCalories: 2000,
-    restrictions: [],
   });
 
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>({});
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedMealPlan | null>(null);
   const [showSettings, setShowSettings] = useState(true);
+  const [error, setError] = useState<string>('');
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<string>('');
 
-  const dietaryRestrictions = [
-    "Vegetariánské",
-    "Veganské",
-    "Bezlepkové",
-    "Bez laktózy",
-    "Nízkosacharidové",
-    "Ketogenní",
-    "Paleo",
-  ];
+  // Load user preferences on component mount
+  useEffect(() => {
+    loadUserPreferences();
+    checkRecentJobs();
+  }, []);
 
-  const handleRestrictionToggle = (restriction: string) => {
-    setSettings(prev => ({
-      ...prev,
-      restrictions: prev.restrictions.includes(restriction)
-        ? prev.restrictions.filter(r => r !== restriction)
-        : [...prev.restrictions, restriction]
-    }));
+  const loadUserPreferences = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error loading user preferences:', error);
+        } else if (data) {
+          setUserPreferences(data);
+          if (data.macro_goals?.calories) {
+            setSettings(prev => ({
+              ...prev,
+              targetCalories: data.macro_goals.calories
+            }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading preferences:', err);
+    } finally {
+      setIsLoadingPreferences(false);
+    }
   };
+
+  // Check for recent completed jobs on page load
+  const checkRecentJobs = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Query recent completed jobs (last 10 minutes)
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+      const response = await fetch(`/api/meal-plan/recent?since=${encodeURIComponent(tenMinutesAgo)}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      // If the endpoint doesn't exist yet, we'll just skip this feature
+      if (!response.ok) {
+        console.log('Recent jobs endpoint not available');
+        return;
+      }
+
+      const data = await response.json();
+      if (data.result) {
+        setGeneratedPlan(data.result);
+        setShowSettings(false);
+        console.log('✅ Loaded recent meal plan');
+      }
+    } catch (err) {
+      console.log('Could not check recent jobs:', err);
+    }
+  };
+
+  // Poll for job status
+  const pollJobStatus = useCallback(async (jobId: string, token: string): Promise<GeneratedMealPlan> => {
+    for (let i = 0; i < MAX_POLLS; i++) {
+      try {
+        const response = await fetch(`/api/meal-plan/status/${jobId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch job status');
+        }
+
+        const data: JobStatusResponse = await response.json();
+
+        if (data.status === 'completed' && data.result) {
+          setGenerationStatus('Hotovo!');
+          return data.result;
+        }
+
+        if (data.status === 'failed') {
+          throw new Error(data.error || 'Generování selhalo');
+        }
+
+        // Update status message
+        if (data.status === 'processing') {
+          setGenerationStatus(`Generování... (${Math.floor(i * POLL_INTERVAL / 1000)}s)`);
+        } else {
+          setGenerationStatus('Čekání na zahájení...');
+        }
+
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      } catch (err) {
+        // On network error, continue polling (might be temporary)
+        console.error('Poll error:', err);
+        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      }
+    }
+
+    throw new Error('Generování trvá déle než obvykle. Zkuste obnovit stránku.');
+  }, []);
 
   const generateMealPlan = async () => {
     setIsGenerating(true);
+    setError('');
+    setGeneratedPlan(null);
+    setGenerationStatus('Zahajování generování...');
 
-    // Simulace AI generování - v reálné implementaci by se volalo API
-    setTimeout(() => {
-      const mockPlan: GeneratedMealPlan = {
-        id: `plan_${Date.now()}`,
-        name: `Jídelníček ${settings.days} dní`,
+    try {
+      // Get user session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setError('Přihlaste se prosím pro generování jídelníčků');
+        return;
+      }
+
+      const requestBody = {
         days: settings.days,
         mealsPerDay: settings.mealsPerDay,
         people: settings.people,
-        total_cost: Math.round(settings.days * settings.people * 150 + Math.random() * 200),
-        shopping_list: [
-          { name: "Kuřecí prsa", quantity: "1kg", category: "Maso", estimated_cost: 180 },
-          { name: "Brokolice", quantity: "500g", category: "Zelenina", estimated_cost: 45 },
-          { name: "Rýže basmati", quantity: "1kg", category: "Obiloviny", estimated_cost: 85 },
-          { name: "Rajčata cherry", quantity: "250g", category: "Zelenina", estimated_cost: 55 },
-          { name: "Olivový olej", quantity: "500ml", category: "Oleje", estimated_cost: 120 },
-          { name: "Mozzarella", quantity: "200g", category: "Mléčné", estimated_cost: 75 },
-          { name: "Čerstvá bazalka", quantity: "1 svazek", category: "Bylinky", estimated_cost: 35 },
-          { name: "Celozrnné těstoviny", quantity: "500g", category: "Obiloviny", estimated_cost: 65 },
-        ],
-        created_at: new Date().toISOString(),
+        targetCalories: settings.targetCalories,
+        restrictions: userPreferences.dietary_restrictions || [],
+        allergies: userPreferences.allergies || [],
+        macroGoals: userPreferences.macro_goals
       };
 
-      setGeneratedPlan(mockPlan);
-      setIsGenerating(false);
+      console.log('🚀 Creating meal plan job:', requestBody);
+
+      // Step 1: Create job (processing starts automatically server-side)
+      const response = await fetch('/api/meal-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const createData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(createData.error || 'Nepodařilo se vytvořit úlohu');
+      }
+
+      const { jobId } = createData;
+      setCurrentJobId(jobId);
+      console.log('✅ Job created:', jobId);
+
+      // Step 2: Poll for completion (processing already started server-side)
+      setGenerationStatus('Generování jídelníčku...');
+      const result = await pollJobStatus(jobId, session.access_token);
+
+      setGeneratedPlan(result);
       setShowSettings(false);
-    }, 3000);
+      console.log('✅ Meal plan generated:', result.name);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Nepodařilo se vygenerovat jídelníček';
+      setError(errorMessage);
+      console.error('Generation failed:', err);
+    } finally {
+      setIsGenerating(false);
+      setCurrentJobId(null);
+      setGenerationStatus('');
+    }
   };
 
   const groupedShoppingList = generatedPlan?.shopping_list.reduce((acc, item) => {
@@ -110,242 +290,429 @@ export default function MealPlannerPage() {
   }, {} as Record<string, ShoppingItem[]>) || {};
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Meal Planner</h1>
-        <p className="text-gray-600">
-          Vygenerujte personalizovaný jídelníček s automatickým nákupním košíkem
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Simple Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Meal Planner</h1>
+        </div>
 
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Nastavení jídelníčku</h2>
-            <CogIcon className="w-6 h-6 text-gray-400" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {/* Days */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Počet dní
-              </label>
-              <select
-                value={settings.days}
-                onChange={(e) => setSettings(prev => ({ ...prev, days: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value={3}>3 dny</option>
-                <option value={5}>5 dní</option>
-                <option value={7}>7 dní</option>
-                <option value={14}>14 dní</option>
-              </select>
+        {/* Modern Settings Panel */}
+        {showSettings && (
+          <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8 mb-12">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Přizpůsobte si jídelníček</h2>
+              <p className="text-gray-600">Nastavte parametry pro generování AI jídelníčku</p>
             </div>
 
-            {/* Meals per day */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Jídel denně
-              </label>
-              <select
-                value={settings.mealsPerDay}
-                onChange={(e) => setSettings(prev => ({ ...prev, mealsPerDay: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value={2}>2 jídla</option>
-                <option value={3}>3 jídla</option>
-                <option value={4}>4 jídla</option>
-                <option value={5}>5 jídel</option>
-              </select>
-            </div>
-
-            {/* People */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Počet lidí
-              </label>
-              <select
-                value={settings.people}
-                onChange={(e) => setSettings(prev => ({ ...prev, people: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value={1}>1 osoba</option>
-                <option value={2}>2 osoby</option>
-                <option value={3}>3 osoby</option>
-                <option value={4}>4 osoby</option>
-                <option value={5}>5 osob</option>
-                <option value={6}>6 osob</option>
-              </select>
-            </div>
-
-            {/* Target calories */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cílové kalorie/den
-              </label>
-              <select
-                value={settings.targetCalories}
-                onChange={(e) => setSettings(prev => ({ ...prev, targetCalories: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value={1500}>1500 kal</option>
-                <option value={1800}>1800 kal</option>
-                <option value={2000}>2000 kal</option>
-                <option value={2200}>2200 kal</option>
-                <option value={2500}>2500 kal</option>
-                <option value={3000}>3000 kal</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Dietary Restrictions */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Dietní omezení (volitelné)
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {dietaryRestrictions.map((restriction) => (
-                <button
-                  key={restriction}
-                  onClick={() => handleRestrictionToggle(restriction)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    settings.restrictions.includes(restriction)
-                      ? "bg-green-100 text-green-700 border border-green-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
-                  }`}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+              {/* Days */}
+              <div className="group">
+                <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                  <CalendarDaysIcon className="w-4 h-4 mr-2 text-green-600" />
+                  Počet dní
+                </label>
+                <select
+                  value={settings.days}
+                  onChange={(e) => {
+                    const newDays = Number(e.target.value);
+                    console.log('🔍 Days selected:', newDays);
+                    setSettings(prev => ({ ...prev, days: newDays }));
+                  }}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 font-medium"
                 >
-                  {restriction}
-                </button>
-              ))}
-            </div>
+                  <option value={2}>2 dny</option>
+                  <option value={3}>3 dny</option>
+                  <option value={5}>5 dní</option>
+                  <option value={7}>7 dní</option>
+                  <option value={14}>14 dní</option>
+                </select>
+              </div>
+
+              {/* Meals per day */}
+              <div className="group">
+                <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                  <ClockIcon className="w-4 h-4 mr-2 text-blue-600" />
+                  Jídel denně
+                </label>
+                <select
+                  value={settings.mealsPerDay}
+                  onChange={(e) => setSettings(prev => ({ ...prev, mealsPerDay: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 font-medium"
+                >
+                  <option value={2}>2 jídla</option>
+                  <option value={3}>3 jídla</option>
+                  <option value={4}>4 jídla</option>
+                  <option value={5}>5 jídel</option>
+                </select>
+              </div>
+
+              {/* People */}
+              <div className="group">
+                <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                  <UsersIcon className="w-4 h-4 mr-2 text-purple-600" />
+                  Počet lidí
+                </label>
+                <select
+                  value={settings.people}
+                  onChange={(e) => setSettings(prev => ({ ...prev, people: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 font-medium"
+                >
+                  <option value={1}>1 osoba</option>
+                  <option value={2}>2 osoby</option>
+                  <option value={3}>3 osoby</option>
+                  <option value={4}>4 osoby</option>
+                  <option value={5}>5 osob</option>
+                  <option value={6}>6 osob</option>
+                </select>
+              </div>
+
+              {/* Target calories */}
+              <div className="group">
+                <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                  <span className="w-4 h-4 mr-2 bg-orange-500 rounded-full"></span>
+                  Cílové kalorie/den
+                </label>
+                <select
+                  value={settings.targetCalories}
+                  onChange={(e) => setSettings(prev => ({ ...prev, targetCalories: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 font-medium"
+                >
+                  <option value={1500}>1500 kal</option>
+                  <option value={1800}>1800 kal</option>
+                  <option value={2000}>2000 kal</option>
+                  <option value={2200}>2200 kal</option>
+                  <option value={2500}>2500 kal</option>
+                  <option value={3000}>3000 kal</option>
+                </select>
+              </div>
           </div>
 
-          {/* Summary */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-gray-900 mb-2">Souhrn nastavení:</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
-                <span>{settings.days} dní</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <ClockIcon className="w-4 h-4 text-gray-400" />
-                <span>{settings.mealsPerDay}× denně</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <UsersIcon className="w-4 h-4 text-gray-400" />
-                <span>{settings.people} {settings.people === 1 ? 'osoba' : 'osob'}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="w-4 h-4 bg-orange-400 rounded-full"></span>
-                <span>{settings.targetCalories} kal/den</span>
-              </div>
-            </div>
-            {settings.restrictions.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <span className="text-gray-600">Omezení: </span>
-                <span className="text-gray-900">{settings.restrictions.join(", ")}</span>
+            {/* User Preferences Display */}
+            {!isLoadingPreferences && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 p-6 mb-8">
+                <div className="flex items-center mb-4">
+                  <UserIcon className="w-5 h-5 text-blue-600 mr-2" />
+                  <h3 className="font-semibold text-blue-900">Vaše osobní preference</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {userPreferences.dietary_restrictions && userPreferences.dietary_restrictions.length > 0 && (
+                    <div className="bg-white/60 rounded-lg p-3">
+                      <span className="font-medium text-gray-800 block mb-1">Dietní omezení</span>
+                      <span className="text-sm text-gray-700">{userPreferences.dietary_restrictions.join(', ')}</span>
+                    </div>
+                  )}
+                  {userPreferences.allergies && userPreferences.allergies.length > 0 && (
+                    <div className="bg-white/60 rounded-lg p-3">
+                      <span className="font-medium text-gray-800 block mb-1">Alergie</span>
+                      <span className="text-sm text-gray-700">{userPreferences.allergies.join(', ')}</span>
+                    </div>
+                  )}
+                  {userPreferences.macro_goals?.calories && (
+                    <div className="bg-white/60 rounded-lg p-3">
+                      <span className="font-medium text-gray-800 block mb-1">Cílové kalorie</span>
+                      <span className="text-sm text-gray-700">{userPreferences.macro_goals.calories} kal/den</span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => window.location.href = '/settings'}
+                  className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center group"
+                >
+                  <CogIcon className="w-4 h-4 mr-1 group-hover:rotate-12 transition-transform" />
+                  Upravit nastavení
+                </button>
               </div>
             )}
-          </div>
 
-          {/* Generate Button */}
-          <button
-            onClick={generateMealPlan}
-            disabled={isGenerating}
-            className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <SparklesIcon className="w-5 h-5" />
-            <span>
-              {isGenerating ? "Generuje se jídelníček..." : "Vygenerovat jídelníček"}
-            </span>
-          </button>
+            {/* Generate Button */}
+            <div className="text-center">
+              <button
+                onClick={generateMealPlan}
+                disabled={isGenerating}
+                className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold text-lg rounded-2xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+              >
+                <SparklesIcon className="w-6 h-6 mr-3" />
+                <span>
+                  {isGenerating ? "Generuje se jídelníček..." : "Vygenerovat AI jídelníček"}
+                </span>
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-center">
+                <ExclamationTriangleIcon className="h-6 w-6 text-red-500 flex-shrink-0" />
+                <span className="text-red-700 font-medium">{error}</span>
+              </div>
+            )}
         </div>
       )}
 
-      {/* Loading State */}
-      {isGenerating && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <h3 className="text-lg font-semibold text-blue-900">
-              AI generuje váš personalizovaný jídelníček...
+        {/* Modern Loading State */}
+        {isGenerating && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 rounded-3xl p-8 mb-12 text-center">
+            <div className="relative inline-block mb-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <SparklesIcon className="w-8 h-8 text-blue-600 animate-pulse" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+              AI vytváří váš jídelníček...
             </h3>
+            {generationStatus && (
+              <p className="text-lg text-blue-600 font-medium mb-4">{generationStatus}</p>
+            )}
+            <div className="space-y-3 text-gray-700 mb-6 max-w-lg mx-auto">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Analyzuji vaše preference a omezení</span>
+              </div>
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span>Generuji {settings.days * settings.mealsPerDay} personalizovaných receptů</span>
+              </div>
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                <span>Sestavuji inteligentní nákupní seznam</span>
+              </div>
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                <span>Počítám nutriční hodnoty a náklady</span>
+              </div>
+            </div>
+            <div className="text-gray-600 bg-white/60 rounded-lg p-3 inline-block">
+              Proces může trvat 1-2 minuty pro komplexní jídelníčky
+            </div>
           </div>
-          <div className="space-y-2 text-blue-700">
-            <p>• Analyzuji vaše preference a omezení</p>
-            <p>• Vybírám vhodné recepty pro {settings.days} dní</p>
-            <p>• Sestavuji nákupní seznam</p>
-            <p>• Optimalizuji ceny a množství</p>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Generated Plan */}
-      {generatedPlan && !isGenerating && (
-        <div className="space-y-8">
-          {/* Plan Summary */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <CheckCircleIcon className="w-8 h-8 text-green-600" />
-              <div>
-                <h3 className="text-xl font-semibold text-green-900">
-                  Jídelníček úspěšně vygenerován!
-                </h3>
-                <p className="text-green-700">
-                  {generatedPlan.name} • {generatedPlan.days} dní • {generatedPlan.people} {generatedPlan.people === 1 ? 'osoba' : 'osob'}
-                </p>
+        {/* Generated Plan */}
+        {generatedPlan && !isGenerating && (
+          <div className="space-y-12">
+            {/* Success Header */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full mb-6 shadow-lg">
+                <CheckCircleIcon className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+                Jídelníček je připraven!
+              </h2>
+              <p className="text-xl text-gray-600 mb-8">
+                {generatedPlan.name} • {generatedPlan.days} dní • {generatedPlan.people} {generatedPlan.people === 1 ? 'osoba' : 'osob'}
+              </p>
+            </div>
+
+            {/* Modern Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200/50">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-green-500 rounded-xl p-3">
+                    <CalendarDaysIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-3xl font-black text-green-600">
+                    {generatedPlan.days * generatedPlan.mealsPerDay}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-800">Celkem jídel</h3>
+                <p className="text-sm text-gray-600">Personalizovaných receptů</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200/50">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-blue-500 rounded-xl p-3">
+                    <ShoppingCartIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-3xl font-black text-blue-600">
+                    {generatedPlan.shopping_list.length}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-800">Nákupní seznam</h3>
+                <p className="text-sm text-gray-600">Položek k nákupu</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl p-6 border border-yellow-200/50">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-yellow-500 rounded-xl p-3">
+                    <span className="text-white font-bold text-lg">Kč</span>
+                  </div>
+                  <span className="text-3xl font-black text-yellow-600">
+                    {generatedPlan.total_cost}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-800">Odhadované náklady</h3>
+                <p className="text-sm text-gray-600">Celková částka</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <CalendarDaysIcon className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">Celkem jídel</span>
-                </div>
-                <span className="text-2xl font-bold text-green-600">
-                  {generatedPlan.days * generatedPlan.mealsPerDay}
-                </span>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <ShoppingCartIcon className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">Položek v košíku</span>
-                </div>
-                <span className="text-2xl font-bold text-blue-600">
-                  {generatedPlan.shopping_list.length}
-                </span>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="w-5 h-5 bg-yellow-400 rounded-full"></span>
-                  <span className="font-medium text-gray-900">Odhadované náklady</span>
-                </div>
-                <span className="text-2xl font-bold text-yellow-600">
-                  {generatedPlan.total_cost} Kč
-                </span>
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => setShowSettings(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-white text-green-700 border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
+                className="flex items-center justify-center space-x-2 px-6 py-3 bg-white text-gray-700 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 font-medium"
               >
-                <CogIcon className="w-4 h-4" />
+                <CogIcon className="w-5 h-5" />
                 <span>Upravit nastavení</span>
               </button>
 
-              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <PlusIcon className="w-4 h-4" />
+              <button
+                onClick={generateMealPlan}
+                className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+              >
+                <SparklesIcon className="w-5 h-5" />
                 <span>Vygenerovat nový</span>
               </button>
+            </div>
+
+          {/* Daily Meal Plans */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center space-x-2 mb-6">
+              <CalendarDaysIcon className="w-6 h-6 text-gray-600" />
+              <h3 className="text-xl font-semibold text-gray-900">
+                Jídelníček po dnech
+              </h3>
+            </div>
+
+            <div className="space-y-8">
+              {generatedPlan.daily_plans.map((dayPlan) => (
+                <div key={dayPlan.day} className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+                    <h4 className="text-xl font-semibold text-gray-900">
+                      Den {dayPlan.day}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {dayPlan.meals.length} jídel • {dayPlan.meals.reduce((sum, meal) => sum + meal.recipe.nutrition.calories, 0)} celkem kalorií
+                    </p>
+                  </div>
+
+                  <div className="divide-y divide-gray-100">
+                    {dayPlan.meals.map((meal, index) => (
+                      <div key={index} className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                {meal.type === 'breakfast' ? 'Snídaně' :
+                                 meal.type === 'lunch' ? 'Oběd' :
+                                 meal.type === 'dinner' ? 'Večeře' :
+                                 meal.type === 'snack' ? 'Svačina' : meal.type}
+                              </span>
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                {meal.recipe.difficulty}
+                              </span>
+                            </div>
+                            <h5 className="text-2xl font-bold text-gray-900 mb-2">
+                              {meal.recipe.name}
+                            </h5>
+                            <p className="text-gray-700 text-base leading-relaxed mb-4">
+                              {meal.recipe.description}
+                            </p>
+                          </div>
+
+                          <div className="ml-6 text-right">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-center justify-end space-x-2">
+                                <ClockIcon className="w-4 h-4 text-gray-400" />
+                                <span className="font-medium">{meal.recipe.cookingTime} min</span>
+                              </div>
+                              <div className="flex items-center justify-end space-x-2">
+                                <UserIcon className="w-4 h-4 text-gray-400" />
+                                <span>{meal.recipe.servings} porcí</span>
+                              </div>
+                              <div className="flex items-center justify-end space-x-2">
+                                <span className="w-4 h-4 bg-orange-400 rounded-full"></span>
+                                <span className="font-semibold text-orange-600">{meal.recipe.nutrition.calories} kal</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Nutrition Info */}
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                          <h6 className="font-medium text-gray-900 mb-2">Nutriční hodnoty (na porci)</h6>
+                          <div className="grid grid-cols-4 gap-4 text-sm">
+                            <div className="text-center">
+                              <div className="text-xl font-bold text-blue-600">{meal.recipe.nutrition.protein}g</div>
+                              <div className="text-gray-600">Bílkoviny</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xl font-bold text-green-600">{meal.recipe.nutrition.carbs}g</div>
+                              <div className="text-gray-600">Sacharidy</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xl font-bold text-yellow-600">{meal.recipe.nutrition.fats}g</div>
+                              <div className="text-gray-600">Tuky</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-xl font-bold text-orange-600">{meal.recipe.nutrition.calories}</div>
+                              <div className="text-gray-600">Kalorie</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Ingredients */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div>
+                            <h6 className="font-semibold text-gray-900 mb-3 flex items-center">
+                              <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />
+                              Ingredience
+                            </h6>
+                            <div className="space-y-2">
+                              {meal.recipe.ingredients.map((ingredient, i) => (
+                                <div key={i} className="flex items-center justify-between py-1 px-3 bg-gray-50 rounded-lg">
+                                  <span className="text-gray-900 font-medium">{ingredient.name}</span>
+                                  <span className="text-gray-600 text-sm">{ingredient.amount} {ingredient.unit}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h6 className="font-semibold text-gray-900 mb-3 flex items-center">
+                              Postup přípravy
+                            </h6>
+                            <div className="space-y-3">
+                              {meal.recipe.instructions.map((instruction) => (
+                                <div key={instruction.step} className="flex gap-3">
+                                  <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                    {instruction.step}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-gray-700 text-sm leading-relaxed">
+                                      {instruction.instruction}
+                                    </p>
+                                    {instruction.timeMinutes && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        ~{instruction.timeMinutes} minut
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tips */}
+                        {meal.recipe.tips && meal.recipe.tips.length > 0 && (
+                          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <h6 className="font-medium text-blue-900 mb-2">Tipy</h6>
+                            <ul className="text-sm text-blue-800 space-y-1">
+                              {meal.recipe.tips.map((tip, i) => (
+                                <li key={i} className="flex items-start">
+                                  <span className="mr-2">•</span>
+                                  <span>{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -402,9 +769,10 @@ export default function MealPlannerPage() {
                 Ceny jsou orientační a mohou se lišit dle obchodu
               </p>
             </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
