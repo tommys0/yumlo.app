@@ -404,6 +404,17 @@ export default function MealPlannerPage() {
 
       console.log('✅ Job created:', jobId);
 
+      // Trigger explicit processing to ensure it runs (fix for serverless background process issues)
+      // We don't await this to keep the UI snappy - polling will pick up the status change
+      fetch('/api/meal-plan/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ jobId })
+      }).catch(err => console.error('Failed to trigger explicit processing:', err));
+
       // Step 2: Poll for completion (processing already started server-side)
       setGenerationStatus('Generování jídelníčku...');
       const result = await pollJobStatus(jobId, session.access_token);
@@ -534,7 +545,7 @@ export default function MealPlannerPage() {
                   <option value={3000}>3000 kal</option>
                 </select>
               </div>
-          </div>
+            </div>
 
             {/* User Preferences Display */}
             {!isLoadingPreferences && (
@@ -594,8 +605,8 @@ export default function MealPlannerPage() {
                 <span className="text-red-700 font-medium">{error}</span>
               </div>
             )}
-        </div>
-      )}
+          </div>
+        )}
 
         {/* Modern Loading State */}
         {isGenerating && (
@@ -727,210 +738,210 @@ export default function MealPlannerPage() {
               </button>
             </div>
 
-          {/* Daily Meal Plans */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center space-x-2 mb-6">
-              <CalendarDaysIcon className="w-6 h-6 text-gray-600" />
-              <h3 className="text-xl font-semibold text-gray-900">
-                Jídelníček po dnech
-              </h3>
-            </div>
-
-            <div className="space-y-8">
-              {generatedPlan.daily_plans.map((dayPlan) => (
-                <div key={dayPlan.day} className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
-                    <h4 className="text-xl font-semibold text-gray-900">
-                      Den {dayPlan.day}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {dayPlan.meals.length} jídel • {dayPlan.meals.reduce((sum, meal) => sum + meal.recipe.nutrition.calories, 0)} celkem kalorií
-                    </p>
-                  </div>
-
-                  <div className="divide-y divide-gray-100">
-                    {dayPlan.meals.map((meal, index) => (
-                      <div key={index} className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                {meal.type === 'breakfast' ? 'Snídaně' :
-                                 meal.type === 'lunch' ? 'Oběd' :
-                                 meal.type === 'dinner' ? 'Večeře' :
-                                 meal.type === 'snack' ? 'Svačina' : meal.type}
-                              </span>
-                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                                {meal.recipe.difficulty}
-                              </span>
-                            </div>
-                            <h5 className="text-2xl font-bold text-gray-900 mb-2">
-                              {meal.recipe.name}
-                            </h5>
-                            <p className="text-gray-700 text-base leading-relaxed mb-4">
-                              {meal.recipe.description}
-                            </p>
-                          </div>
-
-                          <div className="ml-6 text-right">
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center justify-end space-x-2">
-                                <ClockIcon className="w-4 h-4 text-gray-400" />
-                                <span className="font-medium">{meal.recipe.cookingTime} min</span>
-                              </div>
-                              <div className="flex items-center justify-end space-x-2">
-                                <UserIcon className="w-4 h-4 text-gray-400" />
-                                <span>{meal.recipe.servings} porcí</span>
-                              </div>
-                              <div className="flex items-center justify-end space-x-2">
-                                <span className="w-4 h-4 bg-orange-400 rounded-full"></span>
-                                <span className="font-semibold text-orange-600">{meal.recipe.nutrition.calories} kal</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Nutrition Info */}
-                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                          <h6 className="font-medium text-gray-900 mb-2">Nutriční hodnoty (na porci)</h6>
-                          <div className="grid grid-cols-4 gap-4 text-sm">
-                            <div className="text-center">
-                              <div className="text-xl font-bold text-blue-600">{meal.recipe.nutrition.protein}g</div>
-                              <div className="text-gray-600">Bílkoviny</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xl font-bold text-green-600">{meal.recipe.nutrition.carbs}g</div>
-                              <div className="text-gray-600">Sacharidy</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xl font-bold text-yellow-600">{meal.recipe.nutrition.fats}g</div>
-                              <div className="text-gray-600">Tuky</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xl font-bold text-orange-600">{meal.recipe.nutrition.calories}</div>
-                              <div className="text-gray-600">Kalorie</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Ingredients */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div>
-                            <h6 className="font-semibold text-gray-900 mb-3 flex items-center">
-                              <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />
-                              Ingredience
-                            </h6>
-                            <div className="space-y-2">
-                              {meal.recipe.ingredients.map((ingredient, i) => (
-                                <div key={i} className="flex items-center justify-between py-1 px-3 bg-gray-50 rounded-lg">
-                                  <span className="text-gray-900 font-medium">{ingredient.name}</span>
-                                  <span className="text-gray-600 text-sm">{ingredient.amount} {ingredient.unit}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <h6 className="font-semibold text-gray-900 mb-3 flex items-center">
-                              Postup přípravy
-                            </h6>
-                            <div className="space-y-3">
-                              {meal.recipe.instructions.map((instruction) => (
-                                <div key={instruction.step} className="flex gap-3">
-                                  <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                                    {instruction.step}
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="text-gray-700 text-sm leading-relaxed">
-                                      {instruction.instruction}
-                                    </p>
-                                    {instruction.timeMinutes && (
-                                      <p className="text-xs text-gray-500 mt-1">
-                                        ~{instruction.timeMinutes} minut
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Tips */}
-                        {meal.recipe.tips && meal.recipe.tips.length > 0 && (
-                          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <h6 className="font-medium text-blue-900 mb-2">Tipy</h6>
-                            <ul className="text-sm text-blue-800 space-y-1">
-                              {meal.recipe.tips.map((tip, i) => (
-                                <li key={i} className="flex items-start">
-                                  <span className="mr-2">•</span>
-                                  <span>{tip}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Shopping List */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center space-x-2 mb-6">
-              <ShoppingCartIcon className="w-6 h-6 text-gray-600" />
-              <h3 className="text-xl font-semibold text-gray-900">
-                Nákupní seznam
-              </h3>
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                {generatedPlan.shopping_list.length} položek
-              </span>
-            </div>
-
-            <div className="space-y-6">
-              {Object.entries(groupedShoppingList).map(([category, items]) => (
-                <div key={category}>
-                  <h4 className="font-medium text-gray-900 mb-3 pb-2 border-b border-gray-200">
-                    {category}
-                  </h4>
-                  <div className="space-y-2">
-                    {items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                          />
-                          <div>
-                            <span className="font-medium text-gray-900">{item.name}</span>
-                            <span className="text-gray-500 ml-2">({item.quantity})</span>
-                          </div>
-                        </div>
-                        <span className="font-medium text-gray-900">
-                          {item.estimated_cost} Kč
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between text-lg font-semibold">
-                <span className="text-gray-900">Celkové odhadované náklady:</span>
-                <span className="text-green-600">{generatedPlan.total_cost} Kč</span>
+            {/* Daily Meal Plans */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <CalendarDaysIcon className="w-6 h-6 text-gray-600" />
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Jídelníček po dnech
+                </h3>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Ceny jsou orientační a mohou se lišit dle obchodu
-              </p>
+
+              <div className="space-y-8">
+                {generatedPlan.daily_plans.map((dayPlan) => (
+                  <div key={dayPlan.day} className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+                      <h4 className="text-xl font-semibold text-gray-900">
+                        Den {dayPlan.day}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {dayPlan.meals.length} jídel • {dayPlan.meals.reduce((sum, meal) => sum + meal.recipe.nutrition.calories, 0)} celkem kalorií
+                      </p>
+                    </div>
+
+                    <div className="divide-y divide-gray-100">
+                      {dayPlan.meals.map((meal, index) => (
+                        <div key={index} className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                  {meal.type === 'breakfast' ? 'Snídaně' :
+                                    meal.type === 'lunch' ? 'Oběd' :
+                                      meal.type === 'dinner' ? 'Večeře' :
+                                        meal.type === 'snack' ? 'Svačina' : meal.type}
+                                </span>
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                  {meal.recipe.difficulty}
+                                </span>
+                              </div>
+                              <h5 className="text-2xl font-bold text-gray-900 mb-2">
+                                {meal.recipe.name}
+                              </h5>
+                              <p className="text-gray-700 text-base leading-relaxed mb-4">
+                                {meal.recipe.description}
+                              </p>
+                            </div>
+
+                            <div className="ml-6 text-right">
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-center justify-end space-x-2">
+                                  <ClockIcon className="w-4 h-4 text-gray-400" />
+                                  <span className="font-medium">{meal.recipe.cookingTime} min</span>
+                                </div>
+                                <div className="flex items-center justify-end space-x-2">
+                                  <UserIcon className="w-4 h-4 text-gray-400" />
+                                  <span>{meal.recipe.servings} porcí</span>
+                                </div>
+                                <div className="flex items-center justify-end space-x-2">
+                                  <span className="w-4 h-4 bg-orange-400 rounded-full"></span>
+                                  <span className="font-semibold text-orange-600">{meal.recipe.nutrition.calories} kal</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Nutrition Info */}
+                          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                            <h6 className="font-medium text-gray-900 mb-2">Nutriční hodnoty (na porci)</h6>
+                            <div className="grid grid-cols-4 gap-4 text-sm">
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-blue-600">{meal.recipe.nutrition.protein}g</div>
+                                <div className="text-gray-600">Bílkoviny</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-green-600">{meal.recipe.nutrition.carbs}g</div>
+                                <div className="text-gray-600">Sacharidy</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-yellow-600">{meal.recipe.nutrition.fats}g</div>
+                                <div className="text-gray-600">Tuky</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-orange-600">{meal.recipe.nutrition.calories}</div>
+                                <div className="text-gray-600">Kalorie</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Ingredients */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                              <h6 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />
+                                Ingredience
+                              </h6>
+                              <div className="space-y-2">
+                                {meal.recipe.ingredients.map((ingredient, i) => (
+                                  <div key={i} className="flex items-center justify-between py-1 px-3 bg-gray-50 rounded-lg">
+                                    <span className="text-gray-900 font-medium">{ingredient.name}</span>
+                                    <span className="text-gray-600 text-sm">{ingredient.amount} {ingredient.unit}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <h6 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                Postup přípravy
+                              </h6>
+                              <div className="space-y-3">
+                                {meal.recipe.instructions.map((instruction) => (
+                                  <div key={instruction.step} className="flex gap-3">
+                                    <div className="flex-shrink-0 w-7 h-7 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                      {instruction.step}
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="text-gray-700 text-sm leading-relaxed">
+                                        {instruction.instruction}
+                                      </p>
+                                      {instruction.timeMinutes && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          ~{instruction.timeMinutes} minut
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Tips */}
+                          {meal.recipe.tips && meal.recipe.tips.length > 0 && (
+                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <h6 className="font-medium text-blue-900 mb-2">Tipy</h6>
+                              <ul className="text-sm text-blue-800 space-y-1">
+                                {meal.recipe.tips.map((tip, i) => (
+                                  <li key={i} className="flex items-start">
+                                    <span className="mr-2">•</span>
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Shopping List */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <ShoppingCartIcon className="w-6 h-6 text-gray-600" />
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Nákupní seznam
+                </h3>
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                  {generatedPlan.shopping_list.length} položek
+                </span>
+              </div>
+
+              <div className="space-y-6">
+                {Object.entries(groupedShoppingList).map(([category, items]) => (
+                  <div key={category}>
+                    <h4 className="font-medium text-gray-900 mb-3 pb-2 border-b border-gray-200">
+                      {category}
+                    </h4>
+                    <div className="space-y-2">
+                      {items.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                            />
+                            <div>
+                              <span className="font-medium text-gray-900">{item.name}</span>
+                              <span className="text-gray-500 ml-2">({item.quantity})</span>
+                            </div>
+                          </div>
+                          <span className="font-medium text-gray-900">
+                            {item.estimated_cost} Kč
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between text-lg font-semibold">
+                  <span className="text-gray-900">Celkové odhadované náklady:</span>
+                  <span className="text-green-600">{generatedPlan.total_cost} Kč</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Ceny jsou orientační a mohou se lišit dle obchodu
+                </p>
+              </div>
             </div>
           </div>
         )}

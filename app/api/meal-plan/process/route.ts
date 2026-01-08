@@ -340,40 +340,97 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 Manual process trigger by user:', user.id);
 
-    // Claim oldest pending job atomically
-    // First, find the oldest pending job
-    const { data: pendingJob, error: findError } = await supabaseAdmin
-      .from('meal_plan_jobs')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .single();
-
-    if (findError || !pendingJob) {
-      return NextResponse.json({
-        message: 'No pending jobs',
-        processed: false
-      }, { status: 204 });
+    // Check if a specific jobId was provided in the request body
+    let targetJobId: string | null = null;
+    try {
+      const body = await request.json();
+      if (body && body.jobId) {
+        targetJobId = body.jobId;
+        console.log('🎯 Targeting specific job:', targetJobId);
+      }
+    } catch (e) {
+      // Body might be empty, which is fine for the default "oldest job" behavior
     }
 
-    // Try to claim it by updating status
-    const { data: claimedJob, error: claimError } = await supabaseAdmin
-      .from('meal_plan_jobs')
-      .update({
-        status: 'processing',
-        processing_started_at: new Date().toISOString()
-      })
-      .eq('id', pendingJob.id)
-      .eq('status', 'pending') // Only if still pending (prevents race condition)
-      .select()
-      .single();
+    let claimedJob;
 
-    if (claimError || !claimedJob) {
-      return NextResponse.json({
-        message: 'Job already being processed',
-        processed: false
-      }, { status: 409 });
+    if (targetJobId) {
+      // Try to process specific job
+      const { data: job, error: fetchError } = await supabaseAdmin
+        .from('meal_plan_jobs')
+        .select('*')
+        .eq('id', targetJobId)
+        .eq('status', 'pending') // Only pending jobs
+        .single();
+
+      if (fetchError || !job) {
+        return NextResponse.json({
+          message: 'Job not found or not pending',
+          processed: false
+        }, { status: 404 });
+      }
+
+      // Verify ownership
+      if (job.user_id !== user.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+
+      // Claim it
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from('meal_plan_jobs')
+        .update({
+          status: 'processing',
+          processing_started_at: new Date().toISOString()
+        })
+        .eq('id', targetJobId)
+        .select()
+        .single();
+
+      if (updateError || !updated) {
+        return NextResponse.json({ error: 'Failed to claim job' }, { status: 500 });
+      }
+      claimedJob = updated;
+
+    } else {
+      // Default behavior: Claim oldest pending job atomically
+      const { data: pendingJob, error: findError } = await supabaseAdmin
+        .from('meal_plan_jobs')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (findError || !pendingJob) {
+        return NextResponse.json({
+          message: 'No pending jobs',
+          processed: false
+        }, { status: 204 });
+      }
+
+      // Try to claim it by updating status
+      const { data: updated, error: claimError } = await supabaseAdmin
+        .from('meal_plan_jobs')
+        .update({
+          status: 'processing',
+          processing_started_at: new Date().toISOString()
+        })
+        .eq('id', pendingJob.id)
+        .eq('status', 'pending') // Only if still pending (prevents race condition)
+        .select()
+        .single();
+
+      if (claimError || !updated) {
+        return NextResponse.json({
+          message: 'Job already being processed',
+          processed: false
+        }, { status: 409 });
+      }
+      claimedJob = updated;
+    }
+
+    if (!claimedJob) {
+      return NextResponse.json({ error: 'Failed to claim any job' }, { status: 500 });
     }
 
     console.log(`⏳ Processing job ${claimedJob.id}...`);
