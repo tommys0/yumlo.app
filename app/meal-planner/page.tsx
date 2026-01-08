@@ -193,8 +193,9 @@ export default function MealPlannerPage() {
         // Job completed while away - show result
         setGeneratedPlan(data.result);
         setShowSettings(false);
-        localStorage.removeItem('mealPlanJobId');
-        localStorage.removeItem('mealPlanStartTime');
+        // Do NOT clear localStorage - keep it for persistence across navigation
+        // localStorage.removeItem('mealPlanJobId');
+        // localStorage.removeItem('mealPlanStartTime');
         console.log('✅ Loaded completed job from background');
         return;
       }
@@ -226,6 +227,9 @@ export default function MealPlannerPage() {
           .catch(err => {
             setError(err.message);
             console.error('Job failed:', err);
+            // Only clear on failure
+            localStorage.removeItem('mealPlanJobId');
+            localStorage.removeItem('mealPlanStartTime');
           })
           .finally(() => {
             setIsGenerating(false);
@@ -233,8 +237,7 @@ export default function MealPlannerPage() {
             setGenerationStatus('');
             setElapsedTime(0);
             setGenerationStartTime(null);
-            localStorage.removeItem('mealPlanJobId');
-            localStorage.removeItem('mealPlanStartTime');
+            // Don't clear localStorage here to allow persistence
           });
       }
     } catch (err) {
@@ -413,14 +416,16 @@ export default function MealPlannerPage() {
       const errorMessage = err instanceof Error ? err.message : 'Nepodařilo se vygenerovat jídelníček';
       setError(errorMessage);
       console.error('Generation failed:', err);
+      // Clear localStorage only on error so user can try again
+      localStorage.removeItem('mealPlanJobId');
+      localStorage.removeItem('mealPlanStartTime');
     } finally {
       setIsGenerating(false);
       setCurrentJobId(null);
       setGenerationStatus('');
       setElapsedTime(0);
       setGenerationStartTime(null);
-      localStorage.removeItem('mealPlanJobId');
-      localStorage.removeItem('mealPlanStartTime');
+      // Removed localStorage cleanup from here to persist successful jobs
     }
   };
 
