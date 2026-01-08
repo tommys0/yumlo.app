@@ -317,6 +317,7 @@ export default function MealPlannerPage() {
         });
 
         if (!response.ok) {
+          // Network/Server error - retry
           throw new Error('Failed to fetch job status');
         }
 
@@ -328,7 +329,12 @@ export default function MealPlannerPage() {
         }
 
         if (data.status === 'failed') {
-          throw new Error(data.error || 'Generování selhalo');
+          // Job failed explicitly - STOP POLLING
+          const errorMsg = data.error || 'Generování selhalo';
+          // We throw a special error object or just message to distinguish? 
+          // Actually, if we throw here, we need to make sure the catch block below doesn't swallow it.
+          // Let's modify the catch block logic or throw a non-recoverable error.
+          throw new Error(`JOB_FAILED: ${errorMsg}`);
         }
 
         // Update status message
@@ -341,9 +347,19 @@ export default function MealPlannerPage() {
         // Wait before next poll
         await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
       } catch (err) {
-        // On network error, continue polling (might be temporary)
-        console.error('Poll error:', err);
-        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+        // If it's the explicit job failure, stop polling and propagate it
+        if (errorMessage.startsWith('JOB_FAILED:')) {
+          throw new Error(errorMessage.replace('JOB_FAILED: ', ''));
+        }
+
+        // On network error or other transient issues, continue polling
+        console.error('Poll error (retrying):', err);
+        // Only wait if we are continuing
+        if (i < MAX_POLLS - 1) {
+          await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+        }
       }
     }
 
