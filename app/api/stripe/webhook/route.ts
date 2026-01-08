@@ -154,38 +154,19 @@ export async function POST(req: NextRequest) {
           if (userData?.invited_by) {
             console.log('👥 User was referred by:', userData.invited_by);
 
-            // Increment referrer's referrals_count
-            const { error: referralError } = await supabaseAdmin.rpc(
+            // Atomic increment using RPC (fixes race condition)
+            // This uses a single UPDATE statement: SET referrals_count = referrals_count + 1
+            const { error: incrementError } = await supabaseAdmin.rpc(
               'increment_referrals_count',
               { user_id: userData.invited_by }
             );
 
-            if (referralError) {
-              // If the RPC doesn't exist, try direct update
-              console.warn('⚠️ RPC not found, using direct update');
-              const { data: referrer } = await supabaseAdmin
-                .from('users')
-                .select('referrals_count, referral_code')
-                .eq('id', userData.invited_by)
-                .single();
-
-              if (referrer) {
-                const { error: updateError } = await supabaseAdmin
-                  .from('users')
-                  .update({ referrals_count: (referrer.referrals_count || 0) + 1 })
-                  .eq('id', userData.invited_by);
-
-                if (updateError) {
-                  console.error('❌ Failed to increment referrals_count:', updateError);
-                } else {
-                  console.log('✅ Referral tracked! Referrer:', userData.invited_by);
-                  console.log('   Referrer code:', referrer.referral_code);
-                  console.log('   New referral count:', (referrer.referrals_count || 0) + 1);
-                  console.log('   🎉 User', userId, 'subscribed via referral!');
-                }
-              }
+            if (incrementError) {
+              console.error('❌ Failed to increment referrals_count:', incrementError);
+              console.error('   Error details:', JSON.stringify(incrementError, null, 2));
             } else {
-              console.log('✅ Referral count incremented successfully');
+              console.log('✅ Referral tracked atomically for referrer:', userData.invited_by);
+              console.log('   🎉 User', userId, 'subscribed via referral!');
             }
           } else {
             console.log('ℹ️ No referral relationship found');
@@ -233,6 +214,8 @@ export async function POST(req: NextRequest) {
             subscription_status: 'canceled',
             subscription_plan: null,
             subscription_current_period_end: null,
+            scheduled_plan_change: null,
+            scheduled_change_date: null,
           })
           .eq('id', userId);
 
