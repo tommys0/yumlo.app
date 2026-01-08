@@ -448,6 +448,18 @@ export default function MealPlannerPage() {
     return acc;
   }, {} as Record<string, ShoppingItem[]>) || {};
 
+  // Dynamic loading message
+  const getLoadingMessage = (seconds: number) => {
+    // If backend reports specific status, prioritize that if it's meaningful
+    // if (generationStatus && generationStatus !== 'Generování jídelníčku...') return generationStatus;
+
+    if (seconds < 2) return "Čekání na zahájení...";
+    if (seconds < 12) return "Analyzuji vaše preference a omezení...";
+    if (seconds < 35) return `Generuji ${settings.days * settings.mealsPerDay} personalizovaných receptů...`;
+    if (seconds < 50) return "Sestavuji inteligentní nákupní seznam...";
+    return "Počítám nutriční hodnoty a náklady...";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -617,34 +629,23 @@ export default function MealPlannerPage() {
                 <SparklesIcon className="w-8 h-8 text-blue-600 animate-pulse" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">
+            {/* <h3 className="text-2xl font-bold text-gray-800 mb-4">
               AI vytváří váš jídelníček...
-            </h3>
+            </h3> */}
+
+            {/* Dynamic Status Message */}
+            <div className="min-h-[80px] flex items-center justify-center mb-6">
+              <h3 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse text-center px-4">
+                {getLoadingMessage(elapsedTime)}
+              </h3>
+            </div>
+
             {/* Timer display */}
-            <div className="text-3xl font-mono font-bold text-blue-600 mb-4">
+            <div className="text-3xl font-mono font-bold text-blue-600 mb-6">
               {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
             </div>
-            {generationStatus && (
-              <p className="text-lg text-blue-600 font-medium mb-4">{generationStatus}</p>
-            )}
-            <div className="space-y-3 text-gray-700 mb-6 max-w-lg mx-auto">
-              <div className="flex items-center justify-center space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>Analyzuji vaše preference a omezení</span>
-              </div>
-              <div className="flex items-center justify-center space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span>Generuji {settings.days * settings.mealsPerDay} personalizovaných receptů</span>
-              </div>
-              <div className="flex items-center justify-center space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                <span>Sestavuji inteligentní nákupní seznam</span>
-              </div>
-              <div className="flex items-center justify-center space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                <span>Počítám nutriční hodnoty a náklady</span>
-              </div>
-            </div>
+
+            {/* Removed static list */}
             <div className="text-gray-600 bg-white/60 rounded-lg p-3 inline-block mb-6">
               Proces může trvat 1-2 minuty pro komplexní jídelníčky
             </div>
