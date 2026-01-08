@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
@@ -34,14 +34,24 @@ export async function middleware(request: NextRequest) {
   // Refresh session and get user
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Helper to create redirect with preserved cookies
+  const createRedirect = (url: string) => {
+    const redirectResponse = NextResponse.redirect(new URL(url, request.url));
+    // Copy all cookies from supabaseResponse to preserve session
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectResponse;
+  };
+
   // Redirect authenticated users from landing page to dashboard
   if (user && request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return createRedirect('/dashboard');
   }
 
   // Redirect authenticated users away from login/register pages
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return createRedirect('/dashboard');
   }
 
   // Protected routes - redirect to login if not authenticated
@@ -49,7 +59,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
   if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return createRedirect('/login');
   }
 
   // Allow access to /add-device, webhook routes, waitlist, and debug routes

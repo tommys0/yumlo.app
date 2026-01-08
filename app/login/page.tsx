@@ -25,7 +25,8 @@ export default function LoginPage() {
       if (error) throw error;
 
       console.log('Login successful:', data);
-      // Use hard redirect to ensure session cookie is sent with the request
+      // Small delay to ensure session cookie is fully set before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
