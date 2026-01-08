@@ -130,14 +130,14 @@ function RegisterForm() {
     setError('');
     try {
       // If there's a referral code, pass it through the OAuth flow
-      const redirectUrl = referralCode
-        ? `${window.location.origin}/onboarding?ref=${referralCode}`
-        : `${window.location.origin}/onboarding`;
+      const nextUrl = referralCode
+        ? `/onboarding?ref=${referralCode}`
+        : `/onboarding`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
         },
       });
 
