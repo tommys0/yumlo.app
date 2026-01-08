@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
  * Get Gemini model instance for recipe generation
  */
 export function getGeminiModel() {
-  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 }
 
 /**
@@ -25,7 +25,8 @@ export async function generateRecipe(prompt: string): Promise<string> {
     return text;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error("Failed to generate recipe. Please try again.");
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to generate recipe: ${errorMessage}`);
   }
 }
 
