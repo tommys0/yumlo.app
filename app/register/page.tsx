@@ -116,7 +116,8 @@ function RegisterForm() {
       setSuccess(true);
 
       setTimeout(() => {
-        router.push('/onboarding');
+        // Use hard redirect to ensure session cookie is sent with the request
+        window.location.href = '/onboarding';
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration');

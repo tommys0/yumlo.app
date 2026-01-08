@@ -25,7 +25,8 @@ export default function LoginPage() {
       if (error) throw error;
 
       console.log('Login successful:', data);
-      router.push('/dashboard');
+      // Use hard redirect to ensure session cookie is sent with the request
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
     } finally {
