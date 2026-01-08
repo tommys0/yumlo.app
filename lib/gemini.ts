@@ -1,13 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini API client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 /**
  * Get Gemini model instance for recipe generation
  */
 export function getGeminiModel() {
-  return genAI.getGenerativeModel({ model: 'gemini-pro' });
+  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 }
 
 /**
@@ -24,8 +24,8 @@ export async function generateRecipe(prompt: string): Promise<string> {
 
     return text;
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    throw new Error('Failed to generate recipe. Please try again.');
+    console.error("Gemini API Error:", error);
+    throw new Error("Failed to generate recipe. Please try again.");
   }
 }
 
@@ -34,11 +34,12 @@ export async function generateRecipe(prompt: string): Promise<string> {
  */
 export async function testGeminiConnection(): Promise<boolean> {
   try {
-    const testPrompt = "Generate a simple recipe for scrambled eggs in JSON format with ingredients and instructions.";
+    const testPrompt =
+      "Generate a simple recipe for scrambled eggs in JSON format with ingredients and instructions.";
     const result = await generateRecipe(testPrompt);
     return result.length > 0;
   } catch (error) {
-    console.error('Gemini connection test failed:', error);
+    console.error("Gemini connection test failed:", error);
     return false;
   }
 }
