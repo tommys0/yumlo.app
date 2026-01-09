@@ -6,7 +6,7 @@ import { MealPlanRequestSchema, MealPlanRequest, MealPlanResult } from '@/lib/sc
 import { Recipe } from '@/lib/recipe-prompt';
 import { ZodError } from 'zod';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 interface MealPlanDay {
   day: number;

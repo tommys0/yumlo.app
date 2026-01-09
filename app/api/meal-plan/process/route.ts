@@ -5,7 +5,7 @@ import { generateRecipe } from '@/lib/gemini';
 import { MealPlanRequest, MealPlanResult } from '@/lib/schemas/meal-plan';
 import { Recipe } from '@/lib/recipe-prompt';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Fallback endpoint to manually process pending meal plan jobs.
