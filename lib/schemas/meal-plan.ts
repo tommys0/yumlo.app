@@ -9,11 +9,11 @@ export const MealPlanRequestSchema = z.object({
   restrictions: z.array(z.string()).optional().default([]),
   allergies: z.array(z.string()).optional().default([]),
   macroGoals: z.object({
-    protein: z.number().optional(),
-    carbs: z.number().optional(),
-    fats: z.number().optional(),
-    calories: z.number().optional(),
-  }).optional(),
+    protein: z.number().nullish(),
+    carbs: z.number().nullish(),
+    fats: z.number().nullish(),
+    calories: z.number().nullish(),
+  }).nullish(),
 });
 
 export type MealPlanRequest = z.infer<typeof MealPlanRequestSchema>;
