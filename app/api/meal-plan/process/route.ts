@@ -147,7 +147,7 @@ function buildCompleteMealPlanPrompt(request: {
   targetCalories: number;
   dietaryRestrictions: string[];
   allergies: string[];
-  macroGoals?: { protein?: number; carbs?: number; fats?: number; calories?: number };
+  macroGoals?: { protein?: number | null; carbs?: number | null; fats?: number | null; calories?: number | null } | null;
   mealTypes: string[];
 }): string {
   const {
