@@ -12,8 +12,22 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace('/dashboard');
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   // Capture referral code from URL
   useEffect(() => {
@@ -146,6 +160,15 @@ function RegisterForm() {
       setError(err.message || 'An error occurred with Google sign-up');
     }
   };
+
+  // Show loading while checking auth
+  if (checkingAuth) {
+    return (
+      <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', textAlign: 'center' }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>

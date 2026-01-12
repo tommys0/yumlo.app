@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useDesign } from "@/lib/use-design";
+import { supabase } from "@/lib/supabase";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 const navLinks = [
@@ -16,6 +17,8 @@ export default function Header() {
   const design = useDesign();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,6 +26,21 @@ export default function Header() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      setCheckingAuth(false);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -83,23 +101,37 @@ export default function Header() {
 
             {/* Desktop CTA Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <Link
-                href="/login"
-                className="px-4 py-2 font-medium rounded-lg transition-all hover:opacity-80"
-                style={{
-                  color: design.colors.text.primary,
-                  border: `1px solid ${design.colors.ui.border}`,
-                }}
-              >
-                Přihlásit se
-              </Link>
-              <Link
-                href="/register"
-                className="px-4 py-2 font-bold rounded-lg transition-all hover:opacity-90"
-                style={design.getButtonStyle("primary")}
-              >
-                Registrovat
-              </Link>
+              {checkingAuth ? (
+                <div className="w-24 h-10 bg-gray-200 animate-pulse rounded-lg" />
+              ) : isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="px-4 py-2 font-bold rounded-lg transition-all hover:opacity-90"
+                  style={design.getButtonStyle("primary")}
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-4 py-2 font-medium rounded-lg transition-all hover:opacity-80"
+                    style={{
+                      color: design.colors.text.primary,
+                      border: `1px solid ${design.colors.ui.border}`,
+                    }}
+                  >
+                    Přihlásit se
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-4 py-2 font-bold rounded-lg transition-all hover:opacity-90"
+                    style={design.getButtonStyle("primary")}
+                  >
+                    Registrovat
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -139,23 +171,35 @@ export default function Header() {
                 </a>
               ))}
               <div className="pt-4 space-y-3 border-t" style={{ borderColor: design.colors.ui.border }}>
-                <Link
-                  href="/login"
-                  className="block w-full text-center px-4 py-3 font-medium rounded-lg"
-                  style={{
-                    color: design.colors.text.primary,
-                    border: `1px solid ${design.colors.ui.border}`,
-                  }}
-                >
-                  Přihlásit se
-                </Link>
-                <Link
-                  href="/register"
-                  className="block w-full text-center px-4 py-3 font-bold rounded-lg"
-                  style={design.getButtonStyle("primary")}
-                >
-                  Registrovat
-                </Link>
+                {isLoggedIn ? (
+                  <Link
+                    href="/dashboard"
+                    className="block w-full text-center px-4 py-3 font-bold rounded-lg"
+                    style={design.getButtonStyle("primary")}
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="block w-full text-center px-4 py-3 font-medium rounded-lg"
+                      style={{
+                        color: design.colors.text.primary,
+                        border: `1px solid ${design.colors.ui.border}`,
+                      }}
+                    >
+                      Přihlásit se
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="block w-full text-center px-4 py-3 font-bold rounded-lg"
+                      style={design.getButtonStyle("primary")}
+                    >
+                      Registrovat
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
