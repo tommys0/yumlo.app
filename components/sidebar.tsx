@@ -12,6 +12,8 @@ import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  ShoppingCartIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -22,6 +24,8 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
   { name: "AI Scanner", href: "/ai-scanner", icon: CameraIcon },
   { name: "Meal Planner", href: "/meal-planner", icon: CalendarDaysIcon },
+  { name: "Shopping List", href: "/shopping-list", icon: ShoppingCartIcon },
+  { name: "Quick Dinner", href: "/quick-dinner", icon: BoltIcon },
 ];
 
 export default function Sidebar({ className = "" }: SidebarProps) {
@@ -59,15 +63,13 @@ export default function Sidebar({ className = "" }: SidebarProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`absolute left-0 top-0 h-full bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen w-64 ${className}`}>
+      <div
+        className={`absolute left-0 top-0 h-full bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen w-64 ${className}`}
+      >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center px-6 py-4 border-b border-gray-200">
-            <img
-              src="/Yumlo-Icon.png"
-              alt="Y"
-              className="h-8 w-auto -mr-1"
-            />
+            <img src="/Yumlo-Icon.png" alt="Y" className="h-8 w-auto -mr-1" />
             <span className="text-xl font-bold text-gray-900">umlo</span>
           </div>
 
@@ -86,7 +88,9 @@ export default function Sidebar({ className = "" }: SidebarProps) {
                       : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive ? "text-green-600" : "text-gray-400"}`} />
+                  <item.icon
+                    className={`w-5 h-5 ${isActive ? "text-green-600" : "text-gray-400"}`}
+                  />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -104,7 +108,9 @@ export default function Sidebar({ className = "" }: SidebarProps) {
                   : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >
-              <CogIcon className={`w-5 h-5 ${pathname === "/settings" ? "text-green-600" : "text-gray-400"}`} />
+              <CogIcon
+                className={`w-5 h-5 ${pathname === "/settings" ? "text-green-600" : "text-gray-400"}`}
+              />
               <span>Nastavení</span>
             </Link>
             <button
