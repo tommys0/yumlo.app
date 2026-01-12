@@ -42,7 +42,9 @@ export default function DashboardPage() {
         // Fetch user data
         const { data } = await supabase
           .from("users")
-          .select("name, dietary_restrictions, allergies, macro_goals, cuisine_preferences")
+          .select(
+            "name, dietary_restrictions, allergies, macro_goals, cuisine_preferences",
+          )
           .eq("id", user.id)
           .single();
 
@@ -84,7 +86,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="text-gray-600 mb-4">
-            Nahrajte fotky z ledničky a AI automaticky rozpozná všechny ingredience pro vás
+            Nahrajte fotky z ledničky a AI automaticky rozpozná všechny
+            ingredience pro vás
           </p>
           <div className="flex items-center text-blue-600 font-medium">
             <span>Spustit skenování</span>
@@ -109,7 +112,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="text-gray-600 mb-4">
-            Vygenerujte personalizovaný jídelníček s automaticky vytvořeným nákupním košíkem
+            Vygenerujte personalizovaný jídelníček s automaticky vytvořeným
+            nákupním košíkem
           </p>
           <div className="flex items-center text-green-600 font-medium">
             <span>Vytvořit plán</span>
@@ -123,12 +127,16 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Nedávná aktivita</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              Nedávná aktivita
+            </h2>
 
             <div className="space-y-4">
               <div className="text-center py-12">
                 <SparklesIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Zatím žádná aktivita</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Zatím žádná aktivita
+                </h3>
                 <p className="text-gray-500 mb-4">
                   Začněte skenováním ingrediencí nebo vytvořením jídelníčku
                 </p>
@@ -156,34 +164,39 @@ export default function DashboardPage() {
         {/* Stats Sidebar */}
         <div className="space-y-6">
           {/* User Preferences */}
-          {userData?.dietary_restrictions && userData.dietary_restrictions.length > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Vaše preference</h3>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">Dietní omezení:</p>
-                <div className="flex flex-wrap gap-2">
-                  {userData.dietary_restrictions.map((restriction, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
-                    >
-                      {restriction}
-                    </span>
-                  ))}
+          {userData?.dietary_restrictions &&
+            userData.dietary_restrictions.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Vaše preference
+                </h3>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Dietní omezení:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {userData.dietary_restrictions.map((restriction, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                      >
+                        {restriction}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center mt-3 text-sm text-green-600 hover:text-green-700 font-medium"
+                >
+                  Upravit preference →
+                </Link>
               </div>
-              <Link
-                href="/settings"
-                className="inline-flex items-center mt-3 text-sm text-green-600 hover:text-green-700 font-medium"
-              >
-                Upravit preference →
-              </Link>
-            </div>
-          )}
+            )}
 
           {/* Weekly Stats */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tento týden</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Tento týden
+            </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -192,7 +205,9 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Naskenované fotky</p>
-                    <p className="text-lg font-semibold text-gray-900">0</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      0
+                    </p>
                   </div>
                 </div>
               </div>
@@ -227,7 +242,8 @@ export default function DashboardPage() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">💡 Tip</h3>
             <p className="text-sm text-gray-600">
-              Pro nejlepší výsledky AI skenování fotografujte ingredience při dobrém osvětlení a v přehledném uspořádání.
+              Pro nejlepší výsledky AI skenování fotografujte ingredience při
+              dobrém osvětlení a v přehledném uspořádání.
             </p>
           </div>
         </div>
