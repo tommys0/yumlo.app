@@ -35,12 +35,6 @@ interface UserPreferences {
   cuisine_preferences?: string[];
 }
 
-interface ShoppingItem {
-  name: string;
-  quantity: string;
-  category: string;
-  estimated_cost: number;
-}
 
 interface Recipe {
   name: string;
@@ -460,13 +454,6 @@ export default function MealPlannerPage() {
     }
   };
 
-  const groupedShoppingList = generatedPlan?.shopping_list.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, ShoppingItem[]>) || {};
 
   // Dynamic loading message
   const getLoadingMessage = (seconds: number) => {
@@ -910,60 +897,6 @@ export default function MealPlannerPage() {
               </div>
             </div>
 
-            {/* Shopping List */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <ShoppingCartIcon className="w-6 h-6 text-gray-600" />
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Nákupní seznam
-                </h3>
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                  {generatedPlan.shopping_list.length} položek
-                </span>
-              </div>
-
-              <div className="space-y-6">
-                {Object.entries(groupedShoppingList).map(([category, items]) => (
-                  <div key={category}>
-                    <h4 className="font-medium text-gray-900 mb-3 pb-2 border-b border-gray-200">
-                      {category}
-                    </h4>
-                    <div className="space-y-2">
-                      {items.map((item, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                            />
-                            <div>
-                              <span className="font-medium text-gray-900">{item.name}</span>
-                              <span className="text-gray-500 ml-2">({item.quantity})</span>
-                            </div>
-                          </div>
-                          <span className="font-medium text-gray-900">
-                            {item.estimated_cost} Kč
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between text-lg font-semibold">
-                  <span className="text-gray-900">Celkové odhadované náklady:</span>
-                  <span className="text-green-600">{generatedPlan.total_cost} Kč</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Ceny jsou orientační a mohou se lišit dle obchodu
-                </p>
-              </div>
-            </div>
           </div>
         )}
       </div>
