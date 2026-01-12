@@ -2,7 +2,7 @@
 
 B2C SaaS for meal planning using what you have at home. AI generates personalized recipes based on your inventory, allergies, diet type, and macro goals.
 
-**Tech:** Next.js, TypeScript, Supabase, Gemini API, Stripe  
+**Tech:** Next.js, TypeScript, Supabase, Gemini API, Stripe
 **Timeline:** Oct 2025 - Mar 2026
 
 [/] - in progress
@@ -37,7 +37,7 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [x] **Quick action buttons**
   - [x] AI Scanner CTA (Photo upload workflow)
   - [ ] Manage Inventory CTA
-  - [ ] View Shopping List CTA
+  - [x] View Shopping List CTA
 
 ### 📸 Photo Upload Workflow (QR Scanner)
 - [x] **QR Code Generation**
@@ -102,35 +102,48 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [ ] **Bulk actions** (select multiple, delete)
 
 ### 🤖 AI Meal Generation
-- [ ] **AI meal generation (Gemini)**
-  - [ ] Build prompt function (user context + inventory)
-  - [ ] Gemini API integration
-  - [ ] Response parsing (JSON validation)
-  - [ ] Error handling (retry logic, fallbacks)
-- [ ] **Generation form/page**
-  - [ ] Days selection (1/3/7)
-  - [ ] Meal types checkboxes (breakfast/lunch/dinner/snack)
-  - [ ] Special requests input
-  - [ ] Generate button
-- [ ] **Loading state**
-  - [ ] Progress indicator
-  - [ ] Estimated time display
-  - [ ] Cancel generation option (nice-to-have)
-- [ ] **Generation success flow**
-  - [ ] Save to database (meal_plans + meals tables)
-  - [ ] Redirect to meal plan view
-  - [ ] Success toast notification
+- [x] **AI meal generation (Gemini)**
+  - [x] Build prompt function (user context + preferences)
+  - [x] Gemini API integration (`lib/gemini.ts`)
+  - [x] Response parsing (JSON validation)
+  - [x] Error handling (retry logic, fallbacks)
+- [x] **Generation form/page** (`/meal-planner`)
+  - [x] Days selection (1-14 days)
+  - [x] Meals per day selection (2-5)
+  - [x] People/servings selection
+  - [x] Target calories input
+  - [x] Generate button
+- [x] **Loading state**
+  - [x] Progress indicator with elapsed time
+  - [x] Dynamic loading messages
+  - [x] Background job processing
+- [x] **Generation success flow**
+  - [x] Save to database (meal_plan_jobs table)
+  - [x] Display meal plan in UI
+  - [x] Shopping list generation
+
+### ⚡ Quick Dinner
+- [x] **Quick Dinner page** (`/quick-dinner`)
+  - [x] Quick option cards (Super rychlé, Jednoduché, Zdravé, Comfort food)
+  - [x] Single recipe generation
+  - [x] Recipe display with full details
+  - [x] Regenerate button
+- [x] **Quick Dinner API** (`/api/quick-dinner`)
+  - [x] Type-based prompt generation
+  - [x] Gemini AI integration
+  - [x] Response parsing
 
 ### 📅 Meal Plan Viewing
-- [ ] **Meal plan list/calendar view**
-- [ ] **Day navigation** (prev/next buttons)
-- [ ] **Meal cards for each day**
-  - [ ] Recipe name
-  - [ ] Cooking time
-  - [ ] Difficulty badge
-  - [ ] Macro summary (P/C/F/Cal)
-  - [ ] Thumbnail/placeholder image
-- [ ] **Daily macro summary**
+- [x] **Meal plan display** (in /meal-planner)
+- [x] **Day-by-day view**
+- [x] **Meal cards for each day**
+  - [x] Recipe name
+  - [x] Cooking time
+  - [x] Difficulty badge
+  - [x] Macro summary (P/C/F/Cal)
+  - [x] Ingredients list (expandable)
+  - [x] Instructions (expandable)
+- [x] **Daily macro summary**
 - [ ] **Mark as cooked functionality**
   - [ ] Button on meal card
   - [ ] Update meal status in DB
@@ -142,13 +155,12 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
   - [ ] Confirmation modal
 
 ### 🍳 Recipe Detail
-- [ ] **Recipe detail + macros**
-  - [ ] Full recipe page/modal
-  - [ ] Ingredients list (with quantities)
-  - [ ] Step-by-step instructions
-  - [ ] Nutrition breakdown (macros + calories)
-  - [ ] Cooking time, difficulty, servings
-  - [ ] Cuisine type & tags
+- [x] **Recipe detail + macros** (inline in meal planner)
+  - [x] Ingredients list (with quantities)
+  - [x] Step-by-step instructions
+  - [x] Nutrition breakdown (macros + calories)
+  - [x] Cooking time, difficulty, servings
+  - [x] Tips section
 - [ ] **Recipe actions**
   - [ ] Mark as cooked button
   - [ ] Like/Dislike buttons
@@ -167,19 +179,24 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [ ] **Ban/favorite system** (nice-to-have)
 
 ### 🛒 Shopping List
-- [ ] **Shopping list**
-  - [ ] Generate from meal plan (compare plan vs inventory)
-  - [ ] Missing ingredients calculation
-  - [ ] Shopping list page/modal
-  - [ ] Item checkboxes (mark as purchased)
-  - [ ] Quantities aggregation (same item across meals)
+- [x] **Shopping list page** (`/shopping-list`)
+  - [x] Display shopping list from latest meal plan
+  - [x] Items grouped by category
+  - [x] Item checkboxes (mark as purchased)
+  - [x] Progress bar (items checked)
+  - [x] Estimated costs display
+  - [x] Empty state with CTA to meal planner
+- [x] **Shopping list generation**
+  - [x] Auto-generate from meal plan
+  - [x] Quantities aggregation (same item across meals)
+  - [x] Category-based sorting
+  - [x] Cost estimation
 - [ ] **Rohlik.cz integration**
   - [ ] Generate affiliate link
   - [ ] VIVnetworks tracking params
   - [ ] "Order on Rohlik" CTA button
 - [ ] **Shopping list persistence**
-  - [ ] Save to database (shopping_lists table)
-  - [ ] Mark items as checked
+  - [ ] Save checked state to database
   - [ ] Archive completed lists
 
 ### 💳 Freemium & Subscription
@@ -228,7 +245,15 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
   - [x] Navigation links
   - [x] User menu dropdown
   - [ ] Notifications badge (nice-to-have)
-- [ ] **Sidebar** (if needed)
+- [x] **Sidebar** (app navigation)
+  - [x] Dashboard link
+  - [x] AI Scanner link
+  - [x] Meal Planner link
+  - [x] Shopping List link
+  - [x] Quick Dinner link
+  - [x] Settings link
+  - [x] Logout button
+  - [x] Mobile responsive (hamburger menu)
 - [ ] **Footer**
 - [x] **Mobile responsive design**
 - [x] **Loading skeletons**
@@ -242,7 +267,7 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [x] **Modal/dialog components**
 - [ ] **Toast notifications** (Sonner)
 - [x] **Badge components**
-- [ ] **Empty states**
+- [x] **Empty states** (shopping list, meal planner)
 - [ ] **Error states**
 
 ### Pages
@@ -256,10 +281,9 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [x] **Debug dashboard (/debug)** - Development debugging
 - [x] **Debug mobile page (/debug/mobile/[sessionId])** - Debug mobile workflow
 - [ ] **Inventory page (/inventory)**
-- [ ] **Generate plan page (/plans/new)**
-- [ ] **Meal plan view (/plans/[id])**
-- [ ] **Recipe detail (/recipes/[id] or modal)**
-- [ ] **Shopping list (/shopping)**
+- [x] **Meal planner page (/meal-planner)** - Generate & view meal plans
+- [x] **Quick Dinner page (/quick-dinner)** - Fast recipe suggestions
+- [x] **Shopping list page (/shopping-list)** - View & check off items
 - [x] **Settings page (/settings)**
 - [x] **Pricing page (/pricing)**
 - [x] **Success/cancel pages** (/success, /cancel) - handled in settings/pricing logic
@@ -275,12 +299,15 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
   - [x] Photos stored as JSONB array
   - [x] Auto-cleanup functionality
   - [x] RLS policies for security
+- [x] **meal_plan_jobs table** - Background job processing
+  - [x] Job ID, user ID, status, params
+  - [x] Result stored as JSONB
+  - [x] Error tracking
+  - [x] Timestamps (created, processing_started, completed)
 - [ ] **Inventory items table**
-- [ ] **Meal plans table**
-- [ ] **Meals table**
 - [ ] **Recipe ratings table**
-- [ ] **Shopping lists table**
-- [x] **Row Level Security (RLS) policies** (for users + photo_sessions)
+- [ ] **Shopping lists table** (for persistence)
+- [x] **Row Level Security (RLS) policies** (for users + photo_sessions + meal_plan_jobs)
 - [x] **Database indexes for performance** (users + photo_sessions)
 
 ### API Routes
@@ -292,21 +319,26 @@ B2C SaaS for meal planning using what you have at home. AI generates personalize
 - [x] **`/api/debug/*`** (Debug system)
   - [x] `/api/debug/session/create` - Debug session creation
   - [x] `/api/debug/session/[id]/photos` - Debug photo operations
+- [x] **`/api/meal-plan`** (Meal plan generation)
+  - [x] `POST /api/meal-plan` - Create meal plan job
+  - [x] `GET /api/meal-plan/status/[jobId]` - Check job status
+  - [x] `GET /api/meal-plan/recent` - Get recent completed plans
+  - [x] `POST /api/meal-plan/process` - Manual job processing trigger
+- [x] **`/api/quick-dinner`** - Quick recipe generation
 - [ ] **`/api/inventory`**
-- [ ] **`/api/generation`**
-- [ ] **`/api/plans`**
 - [ ] **`/api/recipes`**
-- [ ] **`/api/shopping`**
 - [x] **`/api/stripe/webhook`**
 - [x] **`/api/stripe/create-checkout`**
 - [x] **`/api/stripe/create-portal`**
 - [x] **`/api/user`** (onboarding, update-preferences)
 
 ### Gemini AI Integration
-- [ ] **Prompt builder utility**
-- [ ] **Gemini API client**
-- [ ] **Response validator**
-- [ ] **Error handling & retries**
+- [x] **Gemini API client** (`lib/gemini.ts`)
+- [x] **Prompt builder utilities**
+  - [x] Complete meal plan prompt
+  - [x] Quick dinner prompt
+- [x] **Response parsing** (JSON extraction)
+- [x] **Error handling** (API errors, parsing errors)
 - [ ] **Token usage tracking**
 
 ## 🚀 Deployment & DevOps
