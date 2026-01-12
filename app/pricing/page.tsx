@@ -3,52 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-interface PriceData {
-  id: string;
-  amount: number | null;
-  currency: string;
-  interval: string;
-}
-
-interface StripePrices {
-  basic: PriceData;
-  ultra: PriceData;
-}
-
-const formatPrice = (amount: number | null, currency: string) => {
-  if (!amount) return '0';
-  const price = amount / 100; // Stripe amounts are in cents
-  if (currency.toLowerCase() === 'czk') {
-    return `${Math.round(price)} Kč`;
-  }
-  return `${price} ${currency.toUpperCase()}`;
-};
+import { usePrices } from '@/lib/hooks/use-prices';
 
 export default function PricingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
-  const [prices, setPrices] = useState<StripePrices | null>(null);
-  const [pricesLoading, setPricesLoading] = useState(true);
+  const { prices, loading: pricesLoading, formatPrice } = usePrices();
 
   useEffect(() => {
-    // Fetch prices from Stripe
-    const fetchPrices = async () => {
-      try {
-        const response = await fetch('/api/stripe/prices');
-        const data = await response.json();
-        if (response.ok) {
-          setPrices(data);
-        }
-      } catch (error) {
-        console.error('Error fetching prices:', error);
-      } finally {
-        setPricesLoading(false);
-      }
-    };
-
     // Fetch user's current subscription in background (non-blocking)
     const fetchUserPlan = async () => {
       try {
@@ -67,7 +31,6 @@ export default function PricingPage() {
       }
     };
 
-    fetchPrices();
     fetchUserPlan();
   }, []);
 

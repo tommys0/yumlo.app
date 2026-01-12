@@ -1,33 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useDesign } from "@/lib/use-design";
+import { usePrices } from "@/lib/hooks/use-prices";
 import { CheckIcon } from "@heroicons/react/24/outline";
-
-interface PriceData {
-  id: string;
-  amount: number | null;
-  currency: string;
-  interval: string;
-}
-
-interface StripePrices {
-  basic: PriceData;
-  ultra: PriceData;
-}
-
-const formatPrice = (amount: number | null, currency: string) => {
-  if (!amount) return "0";
-  const price = amount / 100;
-  if (currency.toLowerCase() === "czk") {
-    return `${Math.round(price)} Kč`;
-  }
-  return `${price} ${currency.toUpperCase()}`;
-};
 
 export default function PricingSection() {
   const design = useDesign();
+  const { prices, loading, formatPrice } = usePrices();
 
   const plans = [
     {
@@ -43,11 +23,12 @@ export default function PricingSection() {
       href: "/register",
       buttonText: "Vyzkoušet",
       popular: false,
-      color: "gray"
+      color: "gray",
+      priceKey: null as null,
     },
     {
       name: "Plus",
-      price: "199 Kč",
+      price: prices?.basic ? formatPrice(prices.basic.amount, prices.basic.currency) : "199 Kč",
       period: "/měsíc",
       description: "Kompletní řešení pro vaše stravování.",
       features: [
@@ -60,12 +41,13 @@ export default function PricingSection() {
       href: "/register",
       buttonText: "Předplatit",
       popular: true,
-      color: "emerald"
+      color: "emerald",
+      priceKey: "basic" as const,
     },
     {
       name: "Ultra",
-      price: "???",
-      period: "",
+      price: prices?.ultra ? formatPrice(prices.ultra.amount, prices.ultra.currency) : "???",
+      period: "/měsíc",
       description: "To nejlepší, co pro vás chystáme.",
       features: [
         "Vše co v Plus",
@@ -77,7 +59,8 @@ export default function PricingSection() {
       buttonText: "Již brzy",
       popular: false,
       color: "gray",
-      disabled: true
+      disabled: true,
+      priceKey: "ultra" as const,
     },
   ];
 
@@ -140,7 +123,7 @@ export default function PricingSection() {
               {/* Price */}
               <div className="mb-4 flex items-baseline gap-1">
                 <span
-                  className="text-4xl lg:text-5xl font-bold"
+                  className={`text-4xl lg:text-5xl font-bold ${loading && plan.priceKey ? "animate-pulse bg-gray-200 rounded" : ""}`}
                   style={design.getTextColor()}
                 >
                   {plan.price}
