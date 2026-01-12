@@ -35,8 +35,8 @@ export const metadata: Metadata = {
     images: ["/og-image-cz.jpg"],
   },
   icons: {
-    icon: '/icon.png',
-    apple: '/apple-touch-icon.jpg',
+    icon: '/Yumlo-Icon.png',
+    apple: '/Yumlo-Icon.png',
   },
   manifest: '/manifest.json',
   viewport: "width=device-width, initial-scale=1",
