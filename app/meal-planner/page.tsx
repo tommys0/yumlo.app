@@ -59,6 +59,13 @@ interface MealPlanDay {
   }[];
 }
 
+interface ShoppingItem {
+  name: string;
+  quantity: string;
+  category: string;
+  estimated_cost: number;
+}
+
 interface GeneratedMealPlan {
   id: string;
   name: string;
