@@ -406,6 +406,10 @@ export default function MealPlannerPage() {
       const createData = await response.json();
 
       if (!response.ok) {
+        console.error('API Error Response:', createData);
+        if (createData.details) {
+          console.error('Validation errors:', JSON.stringify(createData.details, null, 2));
+        }
         throw new Error(createData.error || 'Nepodařilo se vytvořit úlohu');
       }
 
@@ -765,8 +769,8 @@ export default function MealPlannerPage() {
               </div>
 
               <div className="space-y-8">
-                {generatedPlan.daily_plans.map((dayPlan) => (
-                  <div key={dayPlan.day} className="border border-gray-200 rounded-xl overflow-hidden">
+                {generatedPlan.daily_plans.map((dayPlan, dayIndex) => (
+                  <div key={`day-${dayIndex}-${dayPlan.day}`} className="border border-gray-200 rounded-xl overflow-hidden">
                     <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
                       <h4 className="text-xl font-semibold text-gray-900">
                         Den {dayPlan.day}
