@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import Sidebar from "@/components/sidebar";
 import type { User } from "@supabase/supabase-js";
 
-export default function QuickDinnerLayout({
+export default function InventoryLayout({
   children,
 }: {
   children: React.ReactNode;

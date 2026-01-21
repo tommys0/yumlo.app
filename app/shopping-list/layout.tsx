@@ -47,7 +47,7 @@ export default function ShoppingListLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
@@ -58,7 +58,7 @@ export default function ShoppingListLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
       <Sidebar />
       <main className="flex-1 lg:ml-0">
         <div className="pt-16 lg:pt-0">
