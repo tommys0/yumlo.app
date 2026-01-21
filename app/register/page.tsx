@@ -34,7 +34,6 @@ function RegisterForm() {
     const ref = searchParams.get('ref');
     if (ref) {
       setReferralCode(ref);
-      console.log('Referral code detected:', ref);
     }
   }, [searchParams]);
 
@@ -64,8 +63,6 @@ function RegisterForm() {
 
       if (error) throw error;
 
-      console.log('Registration successful:', data);
-
       // If there's a referral code, save the referral relationship
       if (referralCode && data.user) {
         try {
@@ -76,9 +73,7 @@ function RegisterForm() {
             .eq('referral_code', referralCode.toUpperCase())
             .single();
 
-          if (referrerError) {
-            console.error('Error looking up referrer:', referrerError);
-          } else if (referrer) {
+          if (!referrerError && referrer) {
             // Wait for the user row to be created by the trigger (with retries)
             let userExists = false;
             let attempts = 0;
@@ -101,28 +96,13 @@ function RegisterForm() {
 
             if (userExists) {
               // Update the new user's invited_by field
-              const { error: updateError } = await supabase
+              await supabase
                 .from('users')
                 .update({ invited_by: referrer.id })
                 .eq('id', data.user.id);
-
-              if (updateError) {
-                console.error('Error saving referral relationship:', updateError);
-              } else {
-                console.log('Referral relationship saved:', {
-                  newUserId: data.user.id,
-                  referrerId: referrer.id,
-                  referralCode: referralCode,
-                });
-              }
-            } else {
-              console.error('User row was not created in time');
             }
-          } else {
-            console.warn('Referral code not found:', referralCode);
           }
-        } catch (refError) {
-          console.error('Error processing referral:', refError);
+        } catch {
           // Don't fail registration if referral processing fails
         }
       }
