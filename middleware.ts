@@ -67,15 +67,22 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Allow access to /add-device, webhook routes, waitlist, auth callback, and debug routes
+  // Allow access to /add-device, webhook routes, waitlist, and auth callback
   if (
     request.nextUrl.pathname.startsWith("/add-device") ||
     request.nextUrl.pathname.startsWith("/auth/callback") ||
     request.nextUrl.pathname.startsWith("/api/stripe/webhook") ||
     request.nextUrl.pathname.startsWith("/waitlist") ||
-    request.nextUrl.pathname.startsWith("/api/waitlist") ||
-    request.nextUrl.pathname.startsWith("/debug") ||
-    request.nextUrl.pathname.startsWith("/api/debug")
+    request.nextUrl.pathname.startsWith("/api/waitlist")
+  ) {
+    return supabaseResponse;
+  }
+
+  // Debug routes only accessible in development
+  if (
+    process.env.NODE_ENV === 'development' &&
+    (request.nextUrl.pathname.startsWith("/debug") ||
+     request.nextUrl.pathname.startsWith("/api/debug"))
   ) {
     return supabaseResponse;
   }
