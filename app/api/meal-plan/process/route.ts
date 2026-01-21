@@ -31,7 +31,6 @@ interface ShoppingItem {
   name: string;
   quantity: string;
   category: string;
-  estimated_cost: number;
 }
 
 // Meal type mapping based on meals per day
@@ -61,12 +60,93 @@ const convertRestrictions = (czechRestrictions: string[]): string[] => {
 // Categorize ingredients for shopping list
 const categorizeIngredient = (ingredientName: string): string => {
   const categories: Record<string, string[]> = {
-    'Maso': ['chicken', 'beef', 'pork', 'turkey', 'lamb', 'fish', 'salmon', 'tuna'],
-    'Zelenina': ['broccoli', 'carrot', 'onion', 'garlic', 'tomato', 'potato', 'pepper', 'spinach'],
-    'Obiloviny': ['rice', 'pasta', 'bread', 'flour', 'oats', 'quinoa'],
-    'Mléčné': ['milk', 'cheese', 'yogurt', 'butter', 'cream'],
-    'Oleje': ['oil', 'olive oil', 'coconut oil'],
-    'Koření': ['salt', 'pepper', 'herbs', 'spices', 'basil', 'oregano'],
+    'Maso': [
+      'kuřecí', 'kureci', 'kuře', 'kure', 'chicken',
+      'hovězí', 'hovezi', 'beef',
+      'vepřové', 'veprove', 'vepřová', 'veprova', 'pork',
+      'mleté', 'mlete', 'mletý', 'mlety',
+      'slanina', 'bacon', 'špek', 'spek',
+      'šunka', 'sunka', 'ham',
+      'klobása', 'klobasa', 'párek', 'parek',
+      'krůtí', 'kruti', 'turkey',
+      'jehněčí', 'jehneci', 'lamb'
+    ],
+    'Ryby': [
+      'losos', 'salmon', 'tuňák', 'tunak', 'tuna',
+      'treska', 'cod', 'ryba', 'fish', 'pstruh', 'kapr',
+      'krevety', 'shrimp', 'mořské', 'morske'
+    ],
+    'Mléčné': [
+      'mléko', 'mleko', 'milk',
+      'smetana', 'cream', 'šlehačka', 'slehacka',
+      'jogurt', 'yogurt',
+      'tvaroh', 'cottage', 'ricotta',
+      'máslo', 'maslo', 'butter',
+      'sýr', 'syr', 'cheese', 'eidam', 'gouda', 'čedar', 'cedar',
+      'parmazán', 'parmezan', 'parmezán', 'parmesan',
+      'mozzarella', 'mozarela', 'feta', 'balkánský', 'balkansky'
+    ],
+    'Vejce': ['vejce', 'vajíčko', 'vajicko', 'egg', 'vaječný', 'vajecny'],
+    'Zelenina': [
+      'rajče', 'rajce', 'rajčata', 'rajcata', 'tomato',
+      'cibule', 'onion',
+      'česnek', 'cesnek', 'garlic',
+      'brambor', 'potato',
+      'mrkev', 'carrot',
+      'paprika', 'pepper',
+      'okurka', 'cucumber',
+      'salát', 'salat', 'lettuce', 'hlávkový', 'hlavkovy',
+      'špenát', 'spenat', 'spinach',
+      'brokolice', 'broccoli',
+      'květák', 'kvetак', 'cauliflower',
+      'cuketa', 'zucchini',
+      'lilek', 'eggplant', 'baklažán', 'baklazan',
+      'zelí', 'zeli', 'cabbage', 'kapusta',
+      'pórek', 'porek', 'leek',
+      'celer', 'celery',
+      'petržel', 'petrzel', 'parsley',
+      'kopr', 'dill',
+      'bazalka', 'basil',
+      'žampion', 'zampion', 'mushroom', 'houby', 'houba',
+      'avokádo', 'avokado', 'avocado'
+    ],
+    'Ovoce': [
+      'jablko', 'apple', 'banán', 'banan', 'banana',
+      'citron', 'citrón', 'lemon', 'limetka', 'lime',
+      'pomeranč', 'pomeranc', 'orange',
+      'jahody', 'strawberry', 'maliny', 'raspberry', 'borůvky', 'boruvky', 'blueberry'
+    ],
+    'Obiloviny': [
+      'rýže', 'ryze', 'rice',
+      'těstoviny', 'testoviny', 'pasta', 'špagety', 'spagety', 'penne', 'fusilli', 'makarony',
+      'chléb', 'chleb', 'bread', 'pečivo', 'pecivo', 'rohlík', 'rohlik',
+      'mouka', 'flour',
+      'ovesné', 'ovesne', 'oats', 'vločky', 'vlocky',
+      'kuskus', 'couscous', 'quinoa', 'quinua', 'bulgur'
+    ],
+    'Luštěniny': [
+      'čočka', 'cocka', 'lentil',
+      'fazole', 'beans',
+      'cizrna', 'chickpea',
+      'hrách', 'hrach', 'pea'
+    ],
+    'Oleje': [
+      'olivový', 'olivovy', 'olive',
+      'olej', 'oil',
+      'slunečnicový', 'slunecnicovy',
+      'řepkový', 'repkovy',
+      'kokosový', 'kokosovy', 'coconut'
+    ],
+    'Koření': [
+      'sůl', 'sul', 'salt',
+      'pepř', 'pepr', 'pepper', 'černý pepř', 'cerny pepr',
+      'paprika mletá', 'paprika mleta',
+      'kmín', 'kmin', 'cumin',
+      'oregano', 'tymián', 'tymian', 'thyme',
+      'rozmarýn', 'rozmaryn', 'rosemary',
+      'skořice', 'skorice', 'cinnamon',
+      'curry', 'koření', 'koreni', 'spice'
+    ],
     'Ostatní': []
   };
 
@@ -79,32 +159,8 @@ const categorizeIngredient = (ingredientName: string): string => {
   return 'Ostatní';
 };
 
-// Estimate cost for ingredient
-const estimateCost = (ingredient: { name: string; amount: string; unit: string }): number => {
-  const baseCosts: Record<string, number> = {
-    'chicken': 200, 'beef': 300, 'pork': 180, 'fish': 250,
-    'rice': 50, 'pasta': 40, 'bread': 30,
-    'cheese': 150, 'milk': 25, 'yogurt': 35,
-    'tomato': 40, 'onion': 20, 'garlic': 15, 'potato': 25,
-    'oil': 80, 'salt': 10, 'pepper': 20
-  };
-
-  const lowerName = ingredient.name.toLowerCase();
-  let baseCost = 50;
-
-  for (const [name, cost] of Object.entries(baseCosts)) {
-    if (lowerName.includes(name)) {
-      baseCost = cost;
-      break;
-    }
-  }
-
-  const amount = parseFloat(ingredient.amount) || 1;
-  return Math.round(baseCost * amount * 0.1) + Math.random() * 20;
-};
-
 // Consolidate ingredients into shopping list
-function generateShoppingList(allIngredients: { name: string; amount: string; unit: string; }[], people: number): ShoppingItem[] {
+function generateShoppingList(allIngredients: { name: string; amount: string; unit: string; }[]): ShoppingItem[] {
   const consolidated: Record<string, { amount: number; unit: string; }> = {};
 
   allIngredients.forEach(ingredient => {
@@ -121,20 +177,11 @@ function generateShoppingList(allIngredients: { name: string; amount: string; un
     }
   });
 
-  const shoppingList: ShoppingItem[] = Object.entries(consolidated).map(([name, data]) => {
-    const ingredient = {
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      amount: data.amount.toString(),
-      unit: data.unit
-    };
-
-    return {
-      name: ingredient.name,
-      quantity: `${Math.ceil(data.amount)} ${data.unit}`,
-      category: categorizeIngredient(name),
-      estimated_cost: estimateCost(ingredient)
-    };
-  });
+  const shoppingList: ShoppingItem[] = Object.entries(consolidated).map(([name, data]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    quantity: `${Math.ceil(data.amount)} ${data.unit}`,
+    category: categorizeIngredient(name),
+  }));
 
   return shoppingList.sort((a, b) => a.category.localeCompare(b.category));
 }
@@ -149,6 +196,9 @@ function buildCompleteMealPlanPrompt(request: {
   allergies: string[];
   macroGoals?: { protein?: number | null; carbs?: number | null; fats?: number | null; calories?: number | null } | null;
   mealTypes: string[];
+  cuisinePreferences?: string[];
+  inventory?: { name: string; priority?: boolean }[];
+  inventoryMode?: 'all' | 'priority';
 }): string {
   const {
     days,
@@ -158,11 +208,21 @@ function buildCompleteMealPlanPrompt(request: {
     dietaryRestrictions,
     allergies,
     macroGoals,
+    cuisinePreferences,
+    inventory,
+    inventoryMode,
   } = request;
 
   const caloriesPerMeal = Math.round(targetCalories / mealsPerDay);
 
-  let prompt = `Jste profesionální kuchař a nutričník. Vytvořte kompletní jídelníček na ${days} dní podle následujících požadavků:
+  let prompt = `Jste domácí kuchař, který vaří jednoduché, chutné a praktické recepty pro běžnou domácnost.
+
+## STYL RECEPTŮ - VELMI DŮLEŽITÉ:
+- Názvy receptů musí být JEDNODUCHÉ a ČESKÉ (např. "Kuřecí steak s bramborovou kaší", "Těstoviny s rajčatovou omáčkou", "Smažená vejce se šunkou")
+- ŽÁDNÉ fancy názvy jako "Buddha bowl", "fusion", "à la", "style" apod.
+- Používejte běžné ingredience dostupné v českých obchodech
+- Recepty by měly být rychlé (max 45 minut) a jednoduché na přípravu
+- Preferujte tradiční českou a evropskou kuchyni
 
 ## POŽADAVKY NA JÍDELNÍČEK:
 - Počet dní: ${days}
@@ -185,15 +245,51 @@ function buildCompleteMealPlanPrompt(request: {
     prompt += `\n- Alergie (MUSÍ SE VYHNOUT): ${allergies.join(', ')}`;
   }
 
+  if (cuisinePreferences && cuisinePreferences.length > 0) {
+    prompt += `\n- Preferované kuchyně: ${cuisinePreferences.join(', ')}`;
+  }
+
+  // Add inventory section if provided
+  if (inventory && inventory.length > 0) {
+    const priorityItems = inventory.filter(item => item.priority === true);
+    const regularItems = inventory.filter(item => item.priority !== true);
+
+    prompt += `\n\n## 🏠 INGREDIENCE, KTERÉ MÁM DOMA - MUSÍTE JE POUŽÍT:`;
+
+    if (inventoryMode === 'priority') {
+      if (priorityItems.length > 0) {
+        prompt += `\n\n⭐ PRIORITNÍ INGREDIENCE (MUSÍ být použity):`;
+        priorityItems.forEach(item => {
+          prompt += `\n- ${item.name}`;
+        });
+        prompt += `\n\n🚨 KRITICKÉ: Vytvořte recepty VÝHRADNĚ z těchto prioritních ingrediencí! Každý recept MUSÍ obsahovat alespoň jednu z nich.`;
+      }
+    } else {
+      prompt += `\n\nDostupné ingredience (POUŽIJTE JE v receptech):`;
+      inventory.forEach(item => {
+        prompt += `\n- ${item.name}${item.priority ? ' ⭐' : ''}`;
+      });
+      prompt += `\n\n🚨 KRITICKÉ: Recepty MUSÍ primárně využívat tyto ingredience! Minimalizujte nákup nových věcí.`;
+    }
+  }
+
   prompt += `
 
 ## INSTRUKCE:
 1. Vytvořte kompletní jídelníček na ${days} dní s ${mealsPerDay} jídly denně
-2. Každé jídlo musí obsahovat kompletní recept s ingrediencemi a postupem
+2. JEDNODUCHÉ názvy receptů v češtině (max 5 slov)
 3. Respektujte všechna dietní omezení a alergie
-4. Používejte české názvy ingrediencí a postupy
-5. Cílte na stanovené kalorie a makroživiny
-6. Každý den by měl být pestrý a vyvážený
+4. Používejte české názvy ingrediencí
+5. Recepty musí být praktické pro domácí vaření`;
+
+  if (inventory && inventory.length > 0) {
+    prompt += `
+6. 🏠 POVINNĚ používejte ingredience ze seznamu "CO MÁM DOMA"
+7. Každý recept by měl obsahovat alespoň 1-2 ingredience z mého inventáře
+8. Nákupní seznam by měl být MINIMÁLNÍ - většinu věcí už mám`;
+  }
+
+  prompt += `
 
 ## VÝSTUPNÍ FORMÁT:
 Vraťte platný JSON objekt s kompletním jídelníčkem - VŠECHNY texty v češtině:
@@ -287,7 +383,10 @@ async function generateCompleteMealPlan(params: MealPlanRequest): Promise<MealPl
     dietaryRestrictions: englishRestrictions,
     allergies: params.allergies || [],
     macroGoals: params.macroGoals,
-    mealTypes
+    mealTypes,
+    cuisinePreferences: params.cuisinePreferences || [],
+    inventory: params.inventory || [],
+    inventoryMode: params.inventoryMode || 'all'
   });
 
   const aiResponse = await generateRecipe(completePlanPrompt);
@@ -299,8 +398,7 @@ async function generateCompleteMealPlan(params: MealPlanRequest): Promise<MealPl
     });
   });
 
-  const shoppingList = generateShoppingList(allIngredients, params.people);
-  const totalCost = shoppingList.reduce((sum, item) => sum + item.estimated_cost, 0);
+  const shoppingList = generateShoppingList(allIngredients);
 
   const mealPlan: MealPlanResult = {
     id: `plan_${Date.now()}`,
@@ -308,7 +406,6 @@ async function generateCompleteMealPlan(params: MealPlanRequest): Promise<MealPl
     days: params.days,
     mealsPerDay: params.mealsPerDay,
     people: params.people,
-    total_cost: Math.round(totalCost),
     daily_plans: completeMealPlan.daily_plans,
     shopping_list: shoppingList,
     created_at: new Date().toISOString()
