@@ -14,6 +14,7 @@ import {
   XMarkIcon,
   ShoppingCartIcon,
   BoltIcon,
+  ArchiveBoxIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -25,6 +26,7 @@ const navigation = [
   { name: "AI Scanner", href: "/ai-scanner", icon: CameraIcon },
   { name: "Meal Planner", href: "/meal-planner", icon: CalendarDaysIcon },
   { name: "Shopping List", href: "/shopping-list", icon: ShoppingCartIcon },
+  { name: "Inventory", href: "/inventory", icon: ArchiveBoxIcon },
   { name: "Quick Dinner", href: "/quick-dinner", icon: BoltIcon },
 ];
 
@@ -40,37 +42,46 @@ export default function Sidebar({ className = "" }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 bg-white rounded-lg shadow-sm border border-gray-200"
-        >
-          {mobileMenuOpen ? (
-            <XMarkIcon className="w-6 h-6 text-gray-600" />
-          ) : (
-            <Bars3Icon className="w-6 h-6 text-gray-600" />
-          )}
-        </button>
-      </div>
+      {/* Mobile menu button - only show when sidebar is closed */}
+      {!mobileMenuOpen && (
+        <div className="lg:hidden fixed top-4 left-4 z-50">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+            aria-label="Otevřít menu"
+          >
+            <Bars3Icon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+          </button>
+        </div>
+      )}
 
       {/* Overlay for mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`absolute left-0 top-0 h-full bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen w-64 ${className}`}
+        className={`fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-40 transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:sticky lg:top-0 w-64 ${className}`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center px-6 py-4 border-b border-gray-200">
-            <img src="/Yumlo-Icon.png" alt="Y" className="h-8 w-auto -mr-1" />
-            <span className="text-xl font-bold text-gray-900">umlo</span>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center">
+              <img src="/Yumlo-Icon.png" alt="Y" className="h-8 w-auto -mr-1" />
+              <span className="text-xl font-bold text-gray-900 dark:text-white">umlo</span>
+            </div>
+            {/* Close button for mobile */}
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="lg:hidden p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Zavřít menu"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Navigation */}
@@ -84,12 +95,12 @@ export default function Sidebar({ className = "" }: SidebarProps) {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-green-50 text-green-700"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   <item.icon
-                    className={`w-5 h-5 ${isActive ? "text-green-600" : "text-gray-400"}`}
+                    className={`w-5 h-5 ${isActive ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}
                   />
                   <span>{item.name}</span>
                 </Link>
@@ -98,24 +109,24 @@ export default function Sidebar({ className = "" }: SidebarProps) {
           </nav>
 
           {/* Settings and Logout */}
-          <div className="p-4 border-t border-gray-200 space-y-2">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
             <Link
               href="/settings"
               onClick={() => setMobileMenuOpen(false)}
               className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 pathname === "/settings"
-                  ? "bg-green-50 text-green-700"
-                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
               <CogIcon
-                className={`w-5 h-5 ${pathname === "/settings" ? "text-green-600" : "text-gray-400"}`}
+                className={`w-5 h-5 ${pathname === "/settings" ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}
               />
               <span>Nastavení</span>
             </Link>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeftOnRectangleIcon className="w-5 h-5 text-gray-400" />
               <span>Odhlásit se</span>
