@@ -1,9 +1,17 @@
 import { z } from 'zod';
 
+// Inventory item schema
+export const InventoryItemSchema = z.object({
+  name: z.string(),
+  priority: z.boolean().optional(),
+});
+
+export type InventoryItem = z.infer<typeof InventoryItemSchema>;
+
 // Request schema for creating a meal plan job
 export const MealPlanRequestSchema = z.object({
   days: z.number().int().min(1).max(14),
-  mealsPerDay: z.number().int().min(2).max(5),
+  mealsPerDay: z.number().int().min(1).max(5),
   people: z.number().int().min(1).max(10),
   targetCalories: z.number().int().min(500).max(5000),
   restrictions: z.array(z.string()).optional().default([]),
@@ -14,6 +22,9 @@ export const MealPlanRequestSchema = z.object({
     fats: z.number().nullish(),
     calories: z.number().nullish(),
   }).nullish(),
+  cuisinePreferences: z.array(z.string()).optional().default([]),
+  inventory: z.array(InventoryItemSchema).optional().default([]),
+  inventoryMode: z.enum(['all', 'priority']).optional().default('all'),
 });
 
 export type MealPlanRequest = z.infer<typeof MealPlanRequestSchema>;
@@ -70,7 +81,6 @@ export const ShoppingItemSchema = z.object({
   name: z.string(),
   quantity: z.string(),
   category: z.string(),
-  estimated_cost: z.number(),
 });
 
 export type ShoppingItem = z.infer<typeof ShoppingItemSchema>;
@@ -82,7 +92,6 @@ export const MealPlanResultSchema = z.object({
   days: z.number(),
   mealsPerDay: z.number(),
   people: z.number(),
-  total_cost: z.number(),
   daily_plans: z.array(MealPlanDaySchema),
   shopping_list: z.array(ShoppingItemSchema),
   created_at: z.string(),
