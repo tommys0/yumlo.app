@@ -17,7 +17,7 @@ export interface StripePrices {
 // Cache prices in memory to avoid refetching on every component mount
 let cachedPrices: StripePrices | null = null;
 let cacheTimestamp: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 export function formatPrice(amount: number | null, currency: string): string {
   if (!amount) return "0";
