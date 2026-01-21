@@ -13,7 +13,6 @@ interface ShoppingItem {
   name: string;
   quantity: string;
   category: string;
-  estimated_cost: number;
   checked?: boolean;
 }
 
@@ -26,7 +25,7 @@ interface MealPlanJob {
   created_at: string;
 }
 
-const categoryOrder = ['Maso', 'Zelenina', 'Obiloviny', 'Mléčné', 'Oleje', 'Koření', 'Ostatní'];
+const categoryOrder = ['Maso', 'Ryby', 'Mléčné', 'Vejce', 'Zelenina', 'Ovoce', 'Obiloviny', 'Luštěniny', 'Oleje', 'Koření', 'Ostatní'];
 
 export default function ShoppingListPage() {
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
@@ -98,7 +97,6 @@ export default function ShoppingListPage() {
     return aIndex - bIndex;
   });
 
-  const totalCost = shoppingItems.reduce((sum, item) => sum + (item.estimated_cost || 0), 0);
   const checkedCount = shoppingItems.filter(item => item.checked).length;
 
   if (loading) {
@@ -114,23 +112,23 @@ export default function ShoppingListPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <ShoppingCartIcon className="w-6 h-6 text-green-600" />
+          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <ShoppingCartIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Nákupní seznam</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nákupní seznam</h1>
         </div>
         {planName && (
-          <p className="text-gray-600 ml-12">z plánu: {planName}</p>
+          <p className="text-gray-600 dark:text-gray-400 ml-12">z plánu: {planName}</p>
         )}
       </div>
 
       {shoppingItems.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <ShoppingCartIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <ShoppingCartIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Zatím nemáte nákupní seznam
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Vygenerujte jídelníček v Meal Planner a váš nákupní seznam se zde automaticky zobrazí.
           </p>
           <a
@@ -144,16 +142,13 @@ export default function ShoppingListPage() {
       ) : (
         <>
           {/* Progress bar */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 {checkedCount} z {shoppingItems.length} položek
               </span>
-              <span className="text-sm font-medium text-gray-900">
-                Odhadované náklady: {Math.round(totalCost)} Kč
-              </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
                 className="bg-green-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(checkedCount / shoppingItems.length) * 100}%` }}
@@ -164,24 +159,24 @@ export default function ShoppingListPage() {
           {/* Shopping list by category */}
           <div className="space-y-6">
             {sortedCategories.map(category => (
-              <div key={category} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">{category}</h3>
+              <div key={category} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{category}</h3>
                 </div>
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                   {groupedItems[category].map((item) => (
                     <li
                       key={item.originalIndex}
                       onClick={() => toggleItem(item.originalIndex)}
-                      className={`flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${
-                        item.checked ? "bg-green-50" : ""
+                      className={`flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                        item.checked ? "bg-green-50 dark:bg-green-900/20" : ""
                       }`}
                     >
                       <div
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                           item.checked
                             ? "bg-green-600 border-green-600"
-                            : "border-gray-300"
+                            : "border-gray-300 dark:border-gray-600"
                         }`}
                       >
                         {item.checked && <CheckIcon className="w-4 h-4 text-white" />}
@@ -189,7 +184,7 @@ export default function ShoppingListPage() {
                       <div className="flex-1">
                         <span
                           className={`font-medium ${
-                            item.checked ? "text-gray-400 line-through" : "text-gray-900"
+                            item.checked ? "text-gray-400 dark:text-gray-500 line-through" : "text-gray-900 dark:text-white"
                           }`}
                         >
                           {item.name}
@@ -197,17 +192,10 @@ export default function ShoppingListPage() {
                       </div>
                       <span
                         className={`text-sm ${
-                          item.checked ? "text-gray-400" : "text-gray-600"
+                          item.checked ? "text-gray-400 dark:text-gray-500" : "text-gray-600 dark:text-gray-400"
                         }`}
                       >
                         {item.quantity}
-                      </span>
-                      <span
-                        className={`text-sm font-medium ${
-                          item.checked ? "text-gray-400" : "text-gray-900"
-                        }`}
-                      >
-                        ~{Math.round(item.estimated_cost)} Kč
                       </span>
                     </li>
                   ))}
