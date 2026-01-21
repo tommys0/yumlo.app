@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Override dark mode to use class-based instead of prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Mundial Font Faces - Local */
 @font-face {
   font-family: 'Mundial';
@@ -241,6 +244,19 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #047857;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #10B981;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #34D399;
 }
 
 /* Mobile Responsiveness Optimizations */
