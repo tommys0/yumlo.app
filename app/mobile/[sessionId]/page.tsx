@@ -353,7 +353,7 @@ export default function MobileUploadPage() {
 
                   {/* Status indicators */}
                   {photo.uploading && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center rounded-lg">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                     </div>
                   )}
