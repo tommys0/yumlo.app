@@ -82,20 +82,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Increment referrer's count if applicable
+    // Increment referrer's count atomically if applicable
     if (invitedBy) {
-      const { data: referrer } = await supabaseAdmin
-        .from('waitlist')
-        .select('referrals_count')
-        .eq('id', invitedBy)
-        .single();
+      // Use atomic SQL increment to prevent race conditions
+      const { error: incrementError } = await supabaseAdmin.rpc(
+        'increment_waitlist_referrals',
+        { referrer_id: invitedBy }
+      );
 
-      if (referrer) {
-        await supabaseAdmin
-          .from('waitlist')
-          .update({ referrals_count: (referrer.referrals_count || 0) + 1 })
-          .eq('id', invitedBy);
-
+      if (incrementError) {
+        // Log but don't fail - referral tracking is non-critical
+        console.error('Failed to increment waitlist referral count:', incrementError);
+      } else {
         console.log('Waitlist referral count incremented for:', invitedBy);
       }
     }
