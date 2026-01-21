@@ -15,7 +15,12 @@ import {
   CheckIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  SunIcon,
+  MoonIcon,
+  ComputerDesktopIcon,
+  SwatchIcon,
 } from '@heroicons/react/24/outline';
+import { useTheme } from '@/lib/theme-provider';
 
 interface UserData {
   email: string;
@@ -71,7 +76,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [activeSection, setActiveSection] = useState<'user' | 'subscription' | 'security'>('subscription');
+  const [activeSection, setActiveSection] = useState<'user' | 'subscription' | 'security' | 'appearance'>('subscription');
+  const { theme, setTheme } = useTheme();
 
   // Password change state
   const [newPassword, setNewPassword] = useState('');
@@ -447,6 +453,10 @@ export default function SettingsPage() {
               setMessage(`✅ Downgrade scheduled! You'll keep your current Ultra plan and features until ${periodEnd}. After that, you'll be switched to ${planName} and charged accordingly.`);
             } else {
               setMessage(`✅ Plan upgraded! You now have access to ${planName} features. Your billing cycle has been reset to today.`);
+              // Auto-refresh page after upgrade to show updated plan
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
             }
             // Refresh user data
             await checkUser();
@@ -548,7 +558,7 @@ export default function SettingsPage() {
     }
   };
 
-  const getPlanName = (planId?: string) => {
+  const getPlanName = (planId?: string, subscriptionStatus?: string) => {
     if (!planId) return 'Free';
 
     // Handle cancellation case
@@ -564,34 +574,40 @@ export default function SettingsPage() {
       return `Ultra (${formatPrice(prices.ultra.amount, prices.ultra.currency)}/month)`;
     }
 
+    // If user has an active subscription but price ID doesn't match current prices,
+    // it's a legacy subscription - show as "Active Plan" and prompt to sync
+    if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+      return 'Active Plan (sync required)';
+    }
+
     return 'Free';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
             {/* Header skeleton */}
             <div className="mb-8">
-              <div className="h-4 bg-gray-200 rounded w-32 mb-4"></div>
-              <div className="h-8 bg-gray-200 rounded w-40"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-32 mb-4"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-40"></div>
             </div>
 
             {/* Navigation tabs skeleton */}
-            <div className="flex space-x-4 mb-8 border-b border-gray-200 pb-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-8 bg-gray-200 rounded w-24"></div>
+            <div className="flex space-x-4 mb-8 border-b border-gray-200 dark:border-gray-800 pb-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-24"></div>
               ))}
             </div>
 
             {/* Content skeleton */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-48 mb-4"></div>
               <div className="space-y-4">
-                <div className="h-4 bg-gray-200 rounded w-32"></div>
-                <div className="h-4 bg-gray-200 rounded w-64"></div>
-                <div className="h-10 bg-gray-200 rounded w-32 mt-6"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-32"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-64"></div>
+                <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded w-32 mt-6"></div>
               </div>
             </div>
           </div>
@@ -601,25 +617,26 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/dashboard"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm mb-4 transition-colors"
+            className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm mb-4 transition-colors"
           >
             <ChevronLeftIcon className="w-4 h-4 mr-1" />
             Zpět na dashboard
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Nastavení</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Nastavení</h1>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-6 border-b border-gray-200 mb-8">
+        <div className="flex space-x-6 border-b border-gray-200 dark:border-gray-800 mb-8">
           {[
             { key: 'subscription', label: 'Předplatné', icon: CreditCardIcon },
             { key: 'user', label: 'Profil', icon: UserIcon },
+            { key: 'appearance', label: 'Vzhled', icon: SwatchIcon },
             { key: 'security', label: 'Bezpečnost', icon: ShieldCheckIcon },
           ].map((section) => (
             <button
@@ -628,7 +645,7 @@ export default function SettingsPage() {
               className={`flex items-center space-x-2 pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeSection === section.key
                   ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               <section.icon className="w-4 h-4" />
@@ -639,26 +656,26 @@ export default function SettingsPage() {
 
         {/* Subscription Section */}
         {activeSection === 'subscription' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Předplatné</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Předplatné</h2>
 
               <div className="space-y-6">
                 {/* Current Plan */}
-                <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-600">Aktuální plán</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Aktuální plán</p>
                     {userData?.subscription_status === 'active' && (
-                      <span className="px-2 py-1 bg-green-100 text-green-600 text-xs rounded-full font-medium">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-full font-medium">
                         Aktivní
                       </span>
                     )}
                   </div>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {getPlanName(userData?.subscription_plan)}
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {getPlanName(userData?.subscription_plan, userData?.subscription_status)}
                   </p>
                   {userData?.subscription_current_period_end && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       Obnovuje se: {new Date(userData.subscription_current_period_end).toLocaleDateString()}
                     </p>
                   )}
@@ -697,7 +714,7 @@ export default function SettingsPage() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                   {userData?.subscription_status && userData.subscription_status !== 'canceled' ? (
                     <>
                       {/* Upgrade button */}
@@ -719,7 +736,7 @@ export default function SettingsPage() {
                         <button
                           onClick={() => handleChangePlan(prices.basic.id, 'Basic', true)}
                           disabled={portalLoading}
-                          className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                          className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                         >
                           {portalLoading ? 'Zpracovávám...' : 'Downgrade na Basic'}
                         </button>
@@ -749,388 +766,316 @@ export default function SettingsPage() {
 
         {/* User Preferences Section */}
         {activeSection === 'user' && (
-        <div
-          style={{
-            background: '#111',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '24px',
-          }}
-        >
-          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>User Preferences</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">User Preferences</h2>
 
-          {!editingPreferences ? (
-            <>
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ color: '#888', marginBottom: '8px' }}>Name</p>
-                <p style={{ fontSize: '16px', color: '#fff' }}>{userData?.name || 'Not set'}</p>
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ color: '#888', marginBottom: '8px' }}>Dietary Restrictions</p>
-                <p style={{ fontSize: '16px', color: '#fff' }}>
-                  {userData?.dietary_restrictions && userData.dietary_restrictions.length > 0
-                    ? userData.dietary_restrictions.join(', ')
-                    : 'None set'}
-                </p>
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ color: '#888', marginBottom: '8px' }}>Allergies</p>
-                <p style={{ fontSize: '16px', color: '#fff' }}>
-                  {userData?.allergies && userData.allergies.length > 0
-                    ? userData.allergies.join(', ')
-                    : 'None set'}
-                </p>
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ color: '#888', marginBottom: '8px' }}>Macro Goals</p>
-                <p style={{ fontSize: '16px', color: '#fff' }}>
-                  {userData?.macro_goals && (userData.macro_goals.protein || userData.macro_goals.carbs || userData.macro_goals.fats)
-                    ? (() => {
-                        const protein = userData.macro_goals.protein || 0;
-                        const carbs = userData.macro_goals.carbs || 0;
-                        const fats = userData.macro_goals.fats || 0;
-                        const calculatedCalories = calculateCaloriesFromMacros(protein, carbs, fats);
-                        return `Protein: ${protein}g, Carbs: ${carbs}g, Fats: ${fats}g, Calories: ${calculatedCalories}`;
-                      })()
-                    : 'None set'}
-                </p>
-                {userData?.macro_goals && (userData.macro_goals.protein || userData.macro_goals.carbs || userData.macro_goals.fats) && (
-                  <p style={{ fontSize: '12px', color: '#666', marginTop: '4px', fontFamily: 'monospace' }}>
-                    4×({userData.macro_goals.protein || 0}+{userData.macro_goals.carbs || 0}) + 9×{userData.macro_goals.fats || 0}
+            {!editingPreferences ? (
+              <>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Name</p>
+                  <p className="text-gray-900 dark:text-white">{userData?.name || 'Not set'}</p>
+                </div>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Dietary Restrictions</p>
+                  <p className="text-gray-900 dark:text-white">
+                    {userData?.dietary_restrictions && userData.dietary_restrictions.length > 0
+                      ? userData.dietary_restrictions.join(', ')
+                      : 'None set'}
                   </p>
-                )}
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ color: '#888', marginBottom: '8px' }}>Cuisine Preferences</p>
-                <p style={{ fontSize: '16px', color: '#fff' }}>
-                  {userData?.cuisine_preferences && userData.cuisine_preferences.length > 0
-                    ? userData.cuisine_preferences.join(', ')
-                    : 'None set'}
-                </p>
-              </div>
-              <button
-                onClick={() => setEditingPreferences(true)}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  background: '#fff',
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                }}
-              >
-                Edit Preferences
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Name</label>
-                <input
-                  type="text"
-                  value={preferenceData.name}
-                  onChange={(e) => setPreferenceData({ ...preferenceData, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    background: '#1a1a1a',
-                    color: '#fff',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                  }}
-                />
-              </div>
+                </div>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Allergies</p>
+                  <p className="text-gray-900 dark:text-white">
+                    {userData?.allergies && userData.allergies.length > 0
+                      ? userData.allergies.join(', ')
+                      : 'None set'}
+                  </p>
+                </div>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Macro Goals</p>
+                  <p className="text-gray-900 dark:text-white">
+                    {userData?.macro_goals && (userData.macro_goals.protein || userData.macro_goals.carbs || userData.macro_goals.fats)
+                      ? (() => {
+                          const protein = userData.macro_goals.protein || 0;
+                          const carbs = userData.macro_goals.carbs || 0;
+                          const fats = userData.macro_goals.fats || 0;
+                          const calculatedCalories = calculateCaloriesFromMacros(protein, carbs, fats);
+                          return `Protein: ${protein}g, Carbs: ${carbs}g, Fats: ${fats}g, Calories: ${calculatedCalories}`;
+                        })()
+                      : 'None set'}
+                  </p>
+                  {userData?.macro_goals && (userData.macro_goals.protein || userData.macro_goals.carbs || userData.macro_goals.fats) && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
+                      4×({userData.macro_goals.protein || 0}+{userData.macro_goals.carbs || 0}) + 9×{userData.macro_goals.fats || 0}
+                    </p>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Cuisine Preferences</p>
+                  <p className="text-gray-900 dark:text-white">
+                    {userData?.cuisine_preferences && userData.cuisine_preferences.length > 0
+                      ? userData.cuisine_preferences.join(', ')
+                      : 'None set'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setEditingPreferences(true)}
+                  className="px-5 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                >
+                  Edit Preferences
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={preferenceData.name}
+                    onChange={(e) => setPreferenceData({ ...preferenceData, name: e.target.value })}
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                  />
+                </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Dietary Restrictions</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px' }}>
-                  {dietaryOptions.map((option) => (
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">Dietary Restrictions</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {dietaryOptions.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => handleDietaryToggle(option)}
+                        className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                          preferenceData.dietary_restrictions.includes(option)
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">Allergies (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={preferenceData.allergies}
+                    onChange={(e) => setPreferenceData({ ...preferenceData, allergies: e.target.value })}
+                    placeholder="e.g., peanuts, shellfish, soy"
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none placeholder:text-gray-400"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">Macro Goals (optional)</label>
+                  <MacroInput
+                    value={preferenceData.macro_goals}
+                    onChange={(value) =>
+                      setPreferenceData({
+                        ...preferenceData,
+                        macro_goals: value,
+                      })
+                    }
+                    isSettingsContext={true}
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">Cuisine Preferences</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {cuisineOptions.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => handleCuisineToggle(option)}
+                        className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                          preferenceData.cuisine_preferences.includes(option)
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSavePreferences}
+                    disabled={portalLoading}
+                    className="px-5 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {portalLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    onClick={() => setEditingPreferences(false)}
+                    disabled={portalLoading}
+                    className="px-5 py-2.5 text-sm text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Appearance Section */}
+        {activeSection === 'appearance' && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Vzhled</h2>
+
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">Barevný režim</p>
+                  <div className="grid grid-cols-3 gap-3">
                     <button
-                      key={option}
-                      type="button"
-                      onClick={() => handleDietaryToggle(option)}
-                      style={{
-                        padding: '8px',
-                        fontSize: '13px',
-                        background: preferenceData.dietary_restrictions.includes(option) ? '#fff' : '#1a1a1a',
-                        color: preferenceData.dietary_restrictions.includes(option) ? '#000' : '#fff',
-                        border: '1px solid #333',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                      }}
+                      onClick={() => setTheme('light')}
+                      className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
+                        theme === 'light'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
                     >
-                      {option}
+                      <SunIcon className={`w-6 h-6 mb-2 ${theme === 'light' ? 'text-green-600' : 'text-gray-500 dark:text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${theme === 'light' ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                        Světlý
+                      </span>
                     </button>
-                  ))}
+
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
+                        theme === 'dark'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <MoonIcon className={`w-6 h-6 mb-2 ${theme === 'dark' ? 'text-green-600' : 'text-gray-500 dark:text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                        Tmavý
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setTheme('system')}
+                      className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
+                        theme === 'system'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <ComputerDesktopIcon className={`w-6 h-6 mb-2 ${theme === 'system' ? 'text-green-600' : 'text-gray-500 dark:text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${theme === 'system' ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                        Systém
+                      </span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-3">
+                    {theme === 'system'
+                      ? 'Automaticky se přizpůsobí nastavení vašeho zařízení'
+                      : theme === 'dark'
+                      ? 'Tmavý režim je aktivní'
+                      : 'Světlý režim je aktivní'}
+                  </p>
                 </div>
               </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Allergies (comma-separated)</label>
-                <input
-                  type="text"
-                  value={preferenceData.allergies}
-                  onChange={(e) => setPreferenceData({ ...preferenceData, allergies: e.target.value })}
-                  placeholder="e.g., peanuts, shellfish, soy"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '14px',
-                    background: '#1a1a1a',
-                    color: '#fff',
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Macro Goals (optional)</label>
-                <MacroInput
-                  value={preferenceData.macro_goals}
-                  onChange={(value) =>
-                    setPreferenceData({
-                      ...preferenceData,
-                      macro_goals: value,
-                    })
-                  }
-                  isSettingsContext={true}
-                />
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>Cuisine Preferences</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px' }}>
-                  {cuisineOptions.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => handleCuisineToggle(option)}
-                      style={{
-                        padding: '8px',
-                        fontSize: '13px',
-                        background: preferenceData.cuisine_preferences.includes(option) ? '#fff' : '#1a1a1a',
-                        color: preferenceData.cuisine_preferences.includes(option) ? '#000' : '#fff',
-                        border: '1px solid #333',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={handleSavePreferences}
-                  disabled={portalLoading}
-                  style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    background: portalLoading ? '#555' : '#fff',
-                    color: portalLoading ? '#aaa' : '#000',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: portalLoading ? 'not-allowed' : 'pointer',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {portalLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                  onClick={() => setEditingPreferences(false)}
-                  disabled={portalLoading}
-                  style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    background: 'transparent',
-                    color: '#888',
-                    border: '1px solid #444',
-                    borderRadius: '8px',
-                    cursor: portalLoading ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
         )}
 
         {/* Security Section */}
         {activeSection === 'security' && (
-        <>
-        <div
-          style={{
-            background: '#111',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '24px',
-          }}
-        >
-          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>Account</h2>
-          <div style={{ marginBottom: '16px' }}>
-            <p style={{ color: '#888', marginBottom: '8px' }}>Email</p>
-            <p style={{ fontSize: '16px', color: '#fff' }}>{userData?.email}</p>
-          </div>
-        </div>
+          <>
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Account</h2>
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Email</p>
+                <p className="text-gray-900 dark:text-white">{userData?.email}</p>
+              </div>
+            </div>
 
-        {/* Password Section */}
-        <div
-          style={{
-            background: '#111',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '24px',
-          }}
-        >
-          <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>Change Password</h2>
-          <form onSubmit={handlePasswordChange}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>
-                New Password
-              </label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '14px',
-                  background: '#1a1a1a',
-                  color: '#fff',
-                  border: '1px solid #333',
-                  borderRadius: '8px',
-                }}
-                required
-              />
+            {/* Password Section */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Change Password</h2>
+              <form onSubmit={handlePasswordChange}>
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                >
+                  Update Password
+                </button>
+              </form>
+              {message && (
+                <p className={`mt-4 text-sm ${message.includes('Error') || message.includes('❌') ? 'text-red-500' : 'text-green-500'}`}>
+                  {message}
+                </p>
+              )}
             </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: '#888' }}>
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '14px',
-                  background: '#1a1a1a',
-                  color: '#fff',
-                  border: '1px solid #333',
-                  borderRadius: '8px',
-                }}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                background: '#333',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              Update Password
-            </button>
-          </form>
-          {message && (
-            <p
-              style={{
-                marginTop: '16px',
-                color: message.includes('Error') ? '#ff4444' : '#44ff44',
-              }}
-            >
-              {message}
-            </p>
-          )}
-        </div>
-        </>
+          </>
         )}
       </div>
 
       {/* Custom Confirmation Modal */}
       {showConfirmModal && confirmModalData && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={() => {
             setShowConfirmModal(false);
             console.log('User cancelled modal by clicking backdrop');
           }}
         >
           <div
-            style={{
-              backgroundColor: '#1a1a1a',
-              border: '1px solid #333',
-              borderRadius: '12px',
-              padding: '32px',
-              maxWidth: '500px',
-              width: '90%',
-            }}
+            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 max-w-md w-[90%] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ fontSize: '24px', marginBottom: '16px', color: '#fff' }}>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               {confirmModalData.title}
             </h2>
-            <p style={{ fontSize: '16px', color: '#ccc', marginBottom: '32px', lineHeight: '1.5' }}>
+            <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
               {confirmModalData.message}
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
                   setShowConfirmModal(false);
                   console.log('User cancelled modal');
                 }}
-                style={{
-                  padding: '10px 24px',
-                  fontSize: '14px',
-                  background: 'transparent',
-                  color: '#888',
-                  border: '1px solid #444',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                }}
+                className="px-6 py-2.5 text-sm text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmModalData.onConfirm}
-                style={{
-                  padding: '10px 24px',
-                  fontSize: '14px',
-                  background: '#fff',
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                }}
+                className="px-6 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
               >
                 Confirm
               </button>
