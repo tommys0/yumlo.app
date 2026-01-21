@@ -38,8 +38,6 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      console.log('Login successful:', data);
-
       // Ensure session is fully persisted before redirect
       await supabase.auth.getSession();
 
