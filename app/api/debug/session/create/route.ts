@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     let userId: string | undefined;
 
     if (authHeader) {
-      addLog('Processing auth header', { authHeader: authHeader.substring(0, 20) + '...' });
+      addLog('Processing auth header', { hasToken: true });
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
