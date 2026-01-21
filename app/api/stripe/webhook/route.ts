@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Stripe from 'stripe';
+import { resetGenerationPeriod } from '@/lib/usage-tracker';
 
 // This is needed to allow raw body parsing for webhook signature verification
 export const runtime = 'nodejs';
@@ -100,29 +101,49 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ received: true, warning: 'No userId' });
         }
 
-        // Check if there was a scheduled change and if it has now taken effect
-        // If the subscription plan changed, clear the scheduled change fields
+        // Check if there's a scheduled change pending
         const { data: currentUserData } = await supabaseAdmin
           .from('users')
-          .select('subscription_plan, scheduled_plan_change')
+          .select('subscription_plan, scheduled_plan_change, scheduled_change_date')
           .eq('id', userId)
           .single();
 
-        const clearScheduledChange = currentUserData?.scheduled_plan_change &&
-          currentUserData?.subscription_plan !== priceId;
+        // Determine if we should update the subscription_plan
+        // Don't update if there's a pending scheduled downgrade (user should stay on current plan)
+        const hasScheduledDowngrade = currentUserData?.scheduled_plan_change &&
+          currentUserData?.scheduled_change_date &&
+          new Date(currentUserData.scheduled_change_date) > new Date();
+
+        // Check if scheduled change has now taken effect (priceId matches scheduled plan)
+        const scheduledChangeEffected = currentUserData?.scheduled_plan_change &&
+          currentUserData?.scheduled_plan_change === priceId;
 
         // Update user subscription status in database
         console.log('💾 Updating database for user:', userId);
+        console.log('   Has scheduled downgrade:', hasScheduledDowngrade);
+        console.log('   Scheduled change effected:', scheduledChangeEffected);
+        console.log('   Current DB plan:', currentUserData?.subscription_plan);
+        console.log('   Incoming priceId:', priceId);
+
         const updateData: any = {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           subscription_status: subscription.status,
-          subscription_plan: priceId,
           subscription_current_period_end: periodEndDate,
         };
 
-        // Clear scheduled change if the plan actually changed
-        if (clearScheduledChange) {
+        // Only update subscription_plan if:
+        // 1. There's no pending scheduled downgrade, OR
+        // 2. The scheduled change has now taken effect
+        if (!hasScheduledDowngrade || scheduledChangeEffected) {
+          updateData.subscription_plan = priceId;
+          console.log('   ✅ Updating subscription_plan to:', priceId);
+        } else {
+          console.log('   ⏸️ NOT updating subscription_plan - scheduled downgrade pending');
+        }
+
+        // Clear scheduled change if it has taken effect
+        if (scheduledChangeEffected) {
           console.log('🔄 Scheduled plan change has taken effect, clearing scheduled fields');
           updateData.scheduled_plan_change = null;
           updateData.scheduled_change_date = null;
@@ -142,8 +163,12 @@ export async function POST(req: NextRequest) {
           console.log('   Updated data:', updateResult);
         }
 
-        // Track referral if this is a new subscription (created event only)
+        // Reset usage counters and track referral for NEW subscriptions only
         if (event.type === 'customer.subscription.created') {
+          // Reset generation period when user subscribes (fresh start)
+          console.log('🔄 Resetting generation period for new subscription');
+          await resetGenerationPeriod(supabaseAdmin, userId);
+
           console.log('🔍 Checking for referral relationship...');
           const { data: userData } = await supabaseAdmin
             .from('users')

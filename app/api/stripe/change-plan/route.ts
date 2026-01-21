@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Get the user's subscription data
     const { data: userData } = await supabase
       .from('users')
-      .select('stripe_subscription_id, subscription_plan')
+      .select('stripe_subscription_id, subscription_plan, subscription_current_period_end')
       .eq('id', user.id)
       .single();
 
@@ -48,75 +48,23 @@ export async function POST(req: NextRequest) {
       userData.stripe_subscription_id
     );
 
-    // Type assertion to access current_period_end
-    const subscriptionData = subscription as any;
-
-    console.log('Retrieved subscription:', {
-      id: subscription.id,
-      status: subscription.status,
-      current_period_end: subscriptionData.current_period_end,
-      items: subscription.items.data.map(item => item.price.id),
-    });
-
     // Determine if this is an upgrade or downgrade based on price
     const currentPrice = subscription.items.data[0].price.id;
-    const priceMap: { [key: string]: number } = {
-      'price_1SU4aiQzCEmOXTX6mnfngIiz': 7, // Basic
-      'price_1SU4bwQzCEmOXTX6YKLtsHLH': 12, // Ultra
-    };
-    const isUpgrade = (priceMap[newPriceId] || 0) > (priceMap[currentPrice] || 0);
+
+    // Fetch the actual prices from Stripe to compare amounts
+    const [currentPriceData, newPriceData] = await Promise.all([
+      stripe.prices.retrieve(currentPrice),
+      stripe.prices.retrieve(newPriceId),
+    ]);
+
+    const currentAmount = currentPriceData.unit_amount || 0;
+    const newAmount = newPriceData.unit_amount || 0;
+    const isUpgrade = newAmount > currentAmount;
 
     let updatedSubscription;
 
     if (isUpgrade) {
-      // UPGRADE: Redirect to checkout to collect payment
-      console.log('Creating checkout session for upgrade');
-
-      // First, cancel the current subscription
-      await stripe.subscriptions.cancel(userData.stripe_subscription_id);
-
-      // Create checkout session for the new plan
-      const checkoutSession = await stripe.checkout.sessions.create({
-        customer: subscription.customer as string,
-        line_items: [
-          {
-            price: newPriceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/settings?upgrade=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/settings?upgrade=canceled`,
-        subscription_data: {
-          metadata: {
-            userId: user.id,
-          },
-        },
-        metadata: {
-          userId: user.id,
-        },
-      });
-
-      console.log('Checkout session created:', checkoutSession.id);
-
-      return NextResponse.json({
-        success: true,
-        requiresCheckout: true,
-        checkoutUrl: checkoutSession.url,
-      });
-    } else {
-      // DOWNGRADE: Change takes effect at end of billing period
-      // Stripe updates the subscription immediately but user keeps current access until period ends
-      const periodEnd = subscriptionData.current_period_end;
-      const effectiveDate = periodEnd
-        ? new Date(periodEnd * 1000).toISOString()
-        : new Date().toISOString();
-
-      console.log('Downgrade metadata:', {
-        current_period_end: periodEnd,
-        effective_date: effectiveDate,
-      });
-
+      // UPGRADE: Update subscription with billing cycle reset to charge full new price immediately
       updatedSubscription = await stripe.subscriptions.update(
         userData.stripe_subscription_id,
         {
@@ -126,36 +74,84 @@ export async function POST(req: NextRequest) {
               price: newPriceId,
             },
           ],
-          proration_behavior: 'none', // No proration - no refund
-          billing_cycle_anchor: 'unchanged', // Keep same billing date
-          metadata: {
-            ...subscription.metadata,
-            downgrade_from: currentPrice, // Track what they're downgrading from
-            downgrade_effective_date: effectiveDate,
-          },
+          proration_behavior: 'none', // Don't prorate - we're resetting billing cycle
+          billing_cycle_anchor: 'now', // Reset billing cycle to today
+          payment_behavior: 'default_incomplete',
+          expand: ['latest_invoice', 'latest_invoice.payment_intent'],
         }
       ) as Stripe.Subscription;
 
+      // Get the invoice from the subscription update response
+      let invoice = updatedSubscription.latest_invoice as Stripe.Invoice | null;
+
+      if (invoice && typeof invoice !== 'string') {
+        // Finalize draft invoice first
+        if (invoice.status === 'draft') {
+          invoice = await stripe.invoices.finalizeInvoice(invoice.id);
+        }
+
+        // Pay the invoice
+        if (invoice.status === 'open' && invoice.amount_due > 0) {
+          await stripe.invoices.pay(invoice.id);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Plan upgraded successfully',
+        newPlan: newPriceId,
+      });
+    } else {
+      // DOWNGRADE: Schedule change for end of billing period using Subscription Schedules
+      const currentPeriodEnd = (subscription as any).current_period_end ||
+        Math.floor(new Date(userData.subscription_current_period_end || Date.now()).getTime() / 1000);
+
+      // Check if subscription already has a schedule
+      let schedule;
+      if (subscription.schedule) {
+        // Release the old schedule and create a new one
+        const scheduleId = typeof subscription.schedule === 'string'
+          ? subscription.schedule
+          : subscription.schedule.id;
+        await stripe.subscriptionSchedules.release(scheduleId);
+      }
+
+      // Create a new subscription schedule
+      schedule = await stripe.subscriptionSchedules.create({
+        from_subscription: userData.stripe_subscription_id,
+      });
+
+      // Update the schedule with two phases:
+      // 1. Current phase (keep current price until period end)
+      // 2. New phase (new price starting at period end)
+      await stripe.subscriptionSchedules.update(schedule.id, {
+        phases: [
+          {
+            items: [{ price: currentPrice, quantity: 1 }],
+            start_date: schedule.phases[0].start_date,
+            end_date: currentPeriodEnd,
+          },
+          {
+            items: [{ price: newPriceId, quantity: 1 }],
+            start_date: currentPeriodEnd,
+          },
+        ],
+        end_behavior: 'release', // Release back to regular subscription after second phase starts
+      });
+
       // Save scheduled downgrade to database for UI display
+      const effectiveDateISO = new Date(currentPeriodEnd * 1000).toISOString();
       await supabase
         .from('users')
         .update({
           scheduled_plan_change: newPriceId,
-          scheduled_change_date: effectiveDate,
+          scheduled_change_date: effectiveDateISO,
         })
         .eq('id', user.id);
 
-      console.log('Scheduled downgrade saved to database:', {
-        scheduled_plan_change: newPriceId,
-        scheduled_change_date: effectiveDate,
-      });
+      // The subscription remains on the current plan until the schedule takes effect
+      updatedSubscription = subscription;
     }
-
-    console.log('Plan changed:', {
-      subscriptionId: updatedSubscription.id,
-      oldPrice: userData.subscription_plan,
-      newPrice: newPriceId,
-    });
 
     return NextResponse.json({
       success: true,
@@ -163,9 +159,9 @@ export async function POST(req: NextRequest) {
       newPlan: newPriceId,
     });
   } catch (error: any) {
-    console.error('Error changing plan:', error);
+    console.error('Error changing plan');
     return NextResponse.json(
-      { error: error?.message || 'Failed to change plan' },
+      { error: 'Failed to change plan' },
       { status: 500 }
     );
   }

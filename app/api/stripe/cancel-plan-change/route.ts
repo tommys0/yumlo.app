@@ -51,42 +51,21 @@ export async function POST(req: NextRequest) {
       userData.stripe_subscription_id
     );
 
-    // Get the original plan from Stripe metadata (this is what we're reverting to)
-    const originalPlan = subscription.metadata?.downgrade_from;
+    // If subscription has a schedule, release it to cancel the scheduled downgrade
+    if (subscription.schedule) {
+      const scheduleId = typeof subscription.schedule === 'string'
+        ? subscription.schedule
+        : subscription.schedule.id;
 
-    if (!originalPlan) {
-      console.error('No downgrade_from metadata found in subscription');
-      return NextResponse.json(
-        { error: 'Cannot determine original plan to revert to' },
-        { status: 400 }
-      );
+      console.log('Releasing subscription schedule:', scheduleId);
+
+      // Release the schedule - this keeps the subscription on its current plan
+      await stripe.subscriptionSchedules.release(scheduleId);
+
+      console.log('Schedule released successfully');
+    } else {
+      console.log('No schedule found on subscription, clearing database only');
     }
-
-    console.log('Reverting to original plan:', {
-      from: subscription.items.data[0].price.id,
-      to: originalPlan,
-    });
-
-    // Revert the subscription back to the original plan (stored in metadata)
-    const revertedSubscription = await stripe.subscriptions.update(
-      userData.stripe_subscription_id,
-      {
-        items: [
-          {
-            id: subscription.items.data[0].id,
-            price: originalPlan, // Revert to the plan stored in downgrade_from metadata
-          },
-        ],
-        proration_behavior: 'none',
-        billing_cycle_anchor: 'unchanged',
-        metadata: {
-          ...subscription.metadata,
-          // Remove downgrade metadata
-          downgrade_from: '',
-          downgrade_effective_date: '',
-        },
-      }
-    );
 
     // Clear scheduled change in database
     await supabase
@@ -98,8 +77,8 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id);
 
     console.log('Successfully cancelled scheduled plan change:', {
-      subscriptionId: revertedSubscription.id,
-      revertedToPlan: userData.subscription_plan,
+      subscriptionId: subscription.id,
+      currentPlan: userData.subscription_plan,
     });
 
     return NextResponse.json({

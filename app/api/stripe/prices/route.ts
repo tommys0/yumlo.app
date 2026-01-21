@@ -34,7 +34,7 @@ export async function GET() {
       },
     }, {
       headers: {
-        'Cache-Control': 'public, max-age=1800, stale-while-revalidate=3600',
+        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=7200',
       },
     });
   } catch (error: any) {
