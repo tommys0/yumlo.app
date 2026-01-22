@@ -25,35 +25,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchOnboardingStatus = useCallback(async (userId: string) => {
     console.log('[AuthContext] Fetching onboarding for:', userId)
 
-    // Add timeout to prevent infinite hang
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
-
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('onboarding_completed')
-        .eq('id', userId)
-        .single()
-        .abortSignal(controller.signal)
+      // Race between query and timeout
+      const result = await Promise.race([
+        supabase
+          .from('users')
+          .select('onboarding_completed')
+          .eq('id', userId)
+          .single(),
+        new Promise<{ data: null; error: Error }>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        ),
+      ])
 
-      clearTimeout(timeoutId)
-
-      if (error) {
-        console.error('[AuthContext] DB error:', error)
-        // Default to true if we can't fetch - let the page handle it
+      if (result.error) {
+        console.error('[AuthContext] DB error:', result.error)
         return true
       }
 
-      console.log('[AuthContext] Onboarding result:', data?.onboarding_completed)
-      return data?.onboarding_completed ?? false
+      console.log('[AuthContext] Onboarding result:', result.data?.onboarding_completed)
+      return result.data?.onboarding_completed ?? false
     } catch (error: any) {
-      clearTimeout(timeoutId)
-      if (error?.name === 'AbortError') {
-        console.error('[AuthContext] DB query timed out after 5s')
-      } else {
-        console.error('[AuthContext] Error:', error)
-      }
+      console.error('[AuthContext] Error:', error?.message || error)
       // Default to true on error - let the page handle it
       return true
     }
