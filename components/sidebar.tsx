@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/theme-provider";
 import {
   HomeIcon,
   CameraIcon,
@@ -34,6 +35,8 @@ export default function Sidebar({ className = "" }: SidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
+  const logoSrc = resolvedTheme === 'dark' ? '/Yumlo-Icon-Light.png' : '/Yumlo-Icon.png';
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -71,7 +74,7 @@ export default function Sidebar({ className = "" }: SidebarProps) {
           {/* Logo */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center">
-              <img src="/Yumlo-Icon.png" alt="Y" className="h-8 w-auto -mr-1" />
+              <img src={logoSrc} alt="Y" className="h-8 w-auto -mr-1" />
               <span className="text-xl font-bold text-gray-900 dark:text-white">umlo</span>
             </div>
             {/* Close button for mobile */}
