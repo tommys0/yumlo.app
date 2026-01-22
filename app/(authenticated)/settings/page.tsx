@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import MacroInput from '@/components/MacroInput';
 import { calculateCaloriesFromMacros } from '@/lib/nutrition-utils';
@@ -73,7 +73,7 @@ const cuisineOptions = [
 ];
 
 export default function SettingsPage() {
-  const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [activeSection, setActiveSection] = useState<'user' | 'subscription' | 'security' | 'appearance'>('subscription');
@@ -118,32 +118,17 @@ export default function SettingsPage() {
     }
 
     const init = async () => {
-      // Get user and prices in parallel
-      const [authResult] = await Promise.all([
-        supabase.auth.getUser(),
-        fetchPrices(),
-      ]);
+      if (!user) return;
 
-      const { data: { user } } = authResult;
-
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      // Fetch prices in background
+      fetchPrices();
 
       // Fetch user data from database
       const { data } = await supabase
         .from('users')
-        .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, onboarding_completed, name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
+        .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
         .eq('id', user.id)
         .single();
-
-      // Check if onboarding is completed
-      if (data && !data.onboarding_completed) {
-        console.log('Onboarding not completed, redirecting...');
-        router.push('/onboarding');
-        return;
-      }
 
       const newUserData = {
         email: user.email || '',
@@ -209,7 +194,7 @@ export default function SettingsPage() {
         console.log('🔕 Real-time sync disabled');
       }
     };
-  }, [router]);
+  }, [user]);
 
   const fetchPrices = async () => {
     try {
@@ -243,28 +228,14 @@ export default function SettingsPage() {
   };
 
   const checkUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push('/login');
-      return;
-    }
+    if (!user) return;
 
     // Fetch user data from database
     const { data } = await supabase
       .from('users')
-      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, onboarding_completed, name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
+      .select('subscription_status, subscription_plan, subscription_current_period_end, scheduled_plan_change, scheduled_change_date, name, dietary_restrictions, allergies, macro_goals, cuisine_preferences')
       .eq('id', user.id)
       .single();
-
-    // Check if onboarding is completed
-    if (data && !data.onboarding_completed) {
-      console.log('Onboarding not completed, redirecting...');
-      router.push('/onboarding');
-      return;
-    }
 
     const newUserData = {
       email: user.email || '',
